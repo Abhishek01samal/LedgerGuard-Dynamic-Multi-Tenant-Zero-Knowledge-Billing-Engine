@@ -47,6 +47,23 @@ The application follows modular component-driven development:
   - Interactive modal dialog to create new invoices with client-side form validation and instant ZK proof registration.
   - Interactive multi-tenant organization selector in the top navigation bar.
 
+### Day 3 (2026-11-14)
+- **Reusable Pagination Component:**
+  - `Pagination.tsx`: Multi-page navigation controls with previous/next triggers, smart page ellipsis (`1 ... 4 5 6 ... 10`), entries summary range (`Showing 1 to 5 of 12 results`), and configurable page size selector (`5`, `10`, `25`, `50`).
+- **Financial Tooltip Component:**
+  - `Tooltip.tsx`: Accessible hover and focus tooltip with slate-900 background, micro-typography, pointer arrow, and position configurations (`top`, `bottom`, `left`, `right`).
+- **Global Toast Notification System:**
+  - `ToastContext.tsx`: React Context and Provider supporting `showToast(message, type, duration)` for non-blocking feedback (`success`, `error`, `warning`, `info`). Features smooth entrance/exit animations and auto-dismissal.
+- **Customer Management Service & Module:**
+  - `customer.service.ts`: Tenant-scoped client querying, search filtering, and record creation.
+  - Dedicated Customer Management view within the engineering console with customer table, total billed calculations, and an "Add Customer" modal dialog with validation.
+- **Table Column Sorting:**
+  - Implemented sortable table headers on Invoice Ledger (`Invoice Number`, `Customer`, `Amount`, `Due Date`) with directional visual indicators (`ArrowUp`, `ArrowDown`, `ArrowUpDown`).
+- **Interactive Enhancements in `App.tsx`:**
+  - Integrated `Pagination` on both the Invoice Ledger and the Customer Directory.
+  - Wrapped ZK proof hashes in `Tooltip` explaining zero-knowledge blind commitments to external reviewers.
+  - Replaced inline message banners with floating global toasts.
+
 ---
 
 ## 3. Component Reference Guide
@@ -60,5 +77,8 @@ The application follows modular component-driven development:
 | `Badge` | `src/components/common/Badge.tsx` | Status pill with variants: `success`, `warning`, `danger`, `info`, `neutral`, `zk`. |
 | `Modal` | `src/components/common/Modal.tsx` | Dialog supporting `isOpen`, `onClose`, `title`, `subtitle`, `footer`, `maxWidth`. |
 | `EmptyState` | `src/components/common/EmptyState.tsx` | Empty state box with `icon`, `title`, `description`, and `action`. |
+| `Pagination` | `src/components/common/Pagination.tsx` | Pagination controls: `currentPage`, `totalItems`, `pageSize`, `onPageChange`, `onPageSizeChange`. |
+| `Tooltip` | `src/components/common/Tooltip.tsx` | Lightweight financial tooltip: `content`, `position`, `children`. |
+| `ToastProvider` | `src/context/ToastContext.tsx` | Global context providing `showToast(msg, type, duration)`. |
 | `Navbar` | `src/components/layout/Navbar.tsx` | Top navigation with interactive tenant switcher, ZK status indicator, and user info. |
 | `Sidebar` | `src/components/layout/Sidebar.tsx` | Navigation sidebar with active state highlights and Git branch versioning. |
