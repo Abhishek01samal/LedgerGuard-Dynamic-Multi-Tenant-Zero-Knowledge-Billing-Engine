@@ -1,0 +1,16 @@
+
+# Environment secrets
+.env
+.env.*
+!.env.example
+
+# Dependencies
+node_modules/
+
+# Build files
+dist/
+coverage/
+
+# Private keys
+*.pem
+*.key
