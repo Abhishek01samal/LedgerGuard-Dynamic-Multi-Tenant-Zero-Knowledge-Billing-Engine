@@ -9,6 +9,7 @@
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
     "test": "jest",
+    "test:ledger": "jest src/modules",
     "lint": "eslint src",
     "keys:generate": "openssl genrsa -out keys/private.pem 2048 && openssl rsa -in keys/private.pem -pubout -out keys/public.pem"
   },

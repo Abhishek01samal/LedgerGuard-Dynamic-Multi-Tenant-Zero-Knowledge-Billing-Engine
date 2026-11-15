@@ -4,7 +4,9 @@ import express, { type Express } from 'express';
 import helmet from 'helmet';
 import { env } from './config/env';
 import { errorHandler, notFoundHandler } from './middleware/error.middleware';
+import { requireAuth } from './middleware/auth.middleware';
 import authRoutes from './modules/auth/auth.routes';
+import ledgerRoutes from './modules/ledger/ledger.routes';
 
 export function createApp(): Express {
   const app = express();
@@ -21,6 +23,7 @@ export function createApp(): Express {
   });
 
   app.use('/api/v1/auth', authRoutes);
+  app.use('/api/v1/ledger', requireAuth, ledgerRoutes);
 
   // TODO(Person 2/4): mount tenant routes once available, e.g.
   // app.use('/api/v1/tenants', requireAuth, tenantRoutes);
