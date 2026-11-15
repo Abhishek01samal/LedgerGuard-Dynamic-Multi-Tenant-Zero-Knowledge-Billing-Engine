@@ -14,6 +14,7 @@ The LedgerGuard frontend is built as an enterprise-grade financial management pl
 
 The application follows modular component-driven development:
 - **Presentation Layer:** Reusable, accessible UI primitives styled with Tailwind CSS avoiding generic AI designs.
+- **Layout Layer:** Modular application shell (`DashboardLayout.tsx`) managing top navigation, collapsible sidebar, responsive mobile drawer, and breadcrumbs navigation.
 - **Service Layer:** Modular TypeScript service adapters with simulated cryptographic hashing and asynchronous delays, structured for 1-to-1 replacement with live backend REST endpoints.
 - **State Architecture:** Tenant-isolated local and reactive state, ensuring no cross-tenant data leakage in the UI layer.
 
@@ -64,13 +65,30 @@ The application follows modular component-driven development:
   - Wrapped ZK proof hashes in `Tooltip` explaining zero-knowledge blind commitments to external reviewers.
   - Replaced inline message banners with floating global toasts.
 
+### Day 4 (2026-11-15)
+- **Modular Layout Container:**
+  - `DashboardLayout.tsx`: Centralized application shell wrapping top navigation, responsive sidebar, breadcrumbs, and page headers.
+- **Breadcrumbs Navigation Component:**
+  - `Breadcrumbs.tsx`: Multi-tier path trail (`Overview > Financial Operations > Invoices & Billing`) with Home icon and accessible ARIA attributes.
+- **Responsive Mobile Drawer & Collapsible Sidebar:**
+  - Added slide-over mobile drawer for viewports under 1024px with backdrop dimming and hamburger toggle in `Navbar.tsx`.
+  - Added collapsible desktop sidebar toggle (`w-64` expanded to `w-16` icon-only mode) with hover tooltips and categorized module groups (Financial Operations vs Platform & Privacy).
+- **Expanded Subscription & Transaction Modules:**
+  - `subscription.service.ts`: Subscription plans model (`Starter`, `Professional`, `Enterprise`) with feature lists and ZK proof quotas.
+  - `transaction.service.ts`: Immutable ZK ledger transactions with payment methods (ACH, Card, Wire) and timestamps.
+  - Dynamic routed content in `App.tsx` for Subscriptions, Transactions, Multi-Tenant partition status, Security verification console, and Settings.
+
 ---
 
 ## 3. Component Reference Guide
 
 | Component | Path | Description & Props |
 |:---|:---|:---|
-| `Button` | `src/components/common/Button.tsx` | Variants: `primary`, `secondary`, `outline`, `ghost`, `danger`. Sizes: `sm`, `md`, `lg`. Supports `isLoading`, `leftIcon`, `rightIcon`. |
+| `DashboardLayout` | `src/layouts/DashboardLayout.tsx` | App shell: `activeTab`, `onTabChange`, `tenants`, `currentTenant`, `breadcrumbs`, `title`, `actions`. |
+| `Breadcrumbs` | `src/components/layout/Breadcrumbs.tsx` | Path navigation: `items: BreadcrumbItem[]`, `onHomeClick`. |
+| `Navbar` | `src/components/layout/Navbar.tsx` | Top navigation with mobile hamburger trigger, interactive tenant switcher, ZK status, and user profile. |
+| `Sidebar` | `src/components/layout/Sidebar.tsx` | Responsive sidebar: `isMobileOpen`, `onCloseMobile`, `isCollapsed`, `onToggleCollapse`, notification badges. |
+| `Button` | `src/components/common/Button.tsx` | Variants: `primary`, `secondary`, `outline`, `ghost`, `danger`. Sizes: `sm`, `md`, `lg`. Supports `isLoading`. |
 | `Input` | `src/components/common/Input.tsx` | Standard input with `label`, `error`, `helperText`, `leftIcon`, `rightIcon`. Focus ring with financial slate tint. |
 | `Select` | `src/components/common/Select.tsx` | Accessible dropdown with typed `SelectOption[]`, `label`, and `error`. |
 | `Card` | `src/components/common/Card.tsx` | Clean container with optional header `title`, `subtitle`, and `action` slot. |
@@ -80,5 +98,3 @@ The application follows modular component-driven development:
 | `Pagination` | `src/components/common/Pagination.tsx` | Pagination controls: `currentPage`, `totalItems`, `pageSize`, `onPageChange`, `onPageSizeChange`. |
 | `Tooltip` | `src/components/common/Tooltip.tsx` | Lightweight financial tooltip: `content`, `position`, `children`. |
 | `ToastProvider` | `src/context/ToastContext.tsx` | Global context providing `showToast(msg, type, duration)`. |
-| `Navbar` | `src/components/layout/Navbar.tsx` | Top navigation with interactive tenant switcher, ZK status indicator, and user info. |
-| `Sidebar` | `src/components/layout/Sidebar.tsx` | Navigation sidebar with active state highlights and Git branch versioning. |

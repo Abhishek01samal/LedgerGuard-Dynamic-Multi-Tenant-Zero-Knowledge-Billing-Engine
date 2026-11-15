@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Navbar } from './components/layout/Navbar';
-import { Sidebar } from './components/layout/Sidebar';
+import { DashboardLayout } from './layouts/DashboardLayout';
 import { Card } from './components/common/Card';
 import { Badge, type BadgeVariant } from './components/common/Badge';
 import { Button } from './components/common/Button';
@@ -31,12 +30,17 @@ import {
   ArrowUp,
   ArrowDown,
   Users,
+  Check,
+  Lock,
 } from 'lucide-react';
 import { formatCurrency, truncateHash } from './utils/formatters';
 import { invoiceService } from './services/invoice.service';
 import { customerService } from './services/customer.service';
 import { tenantService } from './services/tenant.service';
-import type { Invoice, Tenant, InvoiceStatus, Customer } from './types';
+import { subscriptionService, type SubscriptionPlan } from './services/subscription.service';
+import { transactionService } from './services/transaction.service';
+import type { Invoice, Tenant, InvoiceStatus, Customer, Transaction } from './types';
+import type { BreadcrumbItem } from './components/layout/Breadcrumbs';
 
 type SortField = 'invoiceNumber' | 'customerName' | 'total' | 'dueDate';
 type SortOrder = 'asc' | 'desc';
@@ -72,6 +76,10 @@ export function App() {
   const [customerFormErrors, setCustomerFormErrors] = useState<Record<string, string>>({});
   const [isSubmittingCustomer, setIsSubmittingCustomer] = useState(false);
 
+  // Subscriptions & Transactions State
+  const [subscriptionPlans, setSubscriptionPlans] = useState<SubscriptionPlan[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+
   // Invoice Modal State
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isSubmittingInvoice, setIsSubmittingInvoice] = useState(false);
@@ -89,8 +97,13 @@ export function App() {
     async function loadInitialData() {
       const tenantList = await tenantService.getTenants();
       const active = await tenantService.getActiveTenant();
+      const plans = await subscriptionService.getPlans();
+      const txs = await transactionService.getTransactions(active.id);
+
       setTenants(tenantList);
       setCurrentTenant(active);
+      setSubscriptionPlans(plans);
+      setTransactions(txs);
       loadInvoices();
       loadCustomers(active.id);
     }
@@ -266,477 +279,722 @@ export function App() {
     );
   };
 
+  // Breadcrumbs builder
+  const getBreadcrumbs = (): BreadcrumbItem[] => {
+    switch (activeTab) {
+      case 'invoices':
+        return [{ label: 'Financial Operations' }, { label: 'Invoices & Billing', isCurrent: true }];
+      case 'customers':
+        return [{ label: 'Financial Operations' }, { label: 'Customer Directory', isCurrent: true }];
+      case 'subscriptions':
+        return [{ label: 'Financial Operations' }, { label: 'Subscription Plans', isCurrent: true }];
+      case 'transactions':
+        return [{ label: 'Platform & Privacy' }, { label: 'ZK Ledger & Transactions', isCurrent: true }];
+      case 'tenants':
+        return [{ label: 'Platform & Privacy' }, { label: 'Tenant Organizations', isCurrent: true }];
+      case 'security':
+        return [{ label: 'Platform & Privacy' }, { label: 'ZK Cryptographic Security', isCurrent: true }];
+      case 'settings':
+        return [{ label: 'Configuration' }, { label: 'Settings', isCurrent: true }];
+      case 'dashboard':
+      default:
+        return [{ label: 'LedgerGuard' }, { label: 'Executive Dashboard', isCurrent: true }];
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
-      <Navbar
-        tenants={tenants}
-        currentTenant={currentTenant}
-        onTenantChange={(t) => {
-          tenantService.setActiveTenant(t.id);
-          setCurrentTenant(t);
-          showToast(`Switched active tenant to ${t.name}`, 'info');
-        }}
-      />
+    <DashboardLayout
+      activeTab={activeTab}
+      onTabChange={setActiveTab}
+      tenants={tenants}
+      currentTenant={currentTenant}
+      onTenantChange={(t) => {
+        tenantService.setActiveTenant(t.id);
+        setCurrentTenant(t);
+        showToast(`Active organization switched to ${t.name}`, 'info');
+      }}
+      breadcrumbs={getBreadcrumbs()}
+      title={
+        activeTab === 'customers'
+          ? 'Customer Accounts'
+          : activeTab === 'subscriptions'
+          ? 'Subscription Tiers & Proof Quotas'
+          : activeTab === 'transactions'
+          ? 'Immutable Zero-Knowledge Ledger'
+          : activeTab === 'tenants'
+          ? 'Multi-Tenant Organizations'
+          : activeTab === 'security'
+          ? 'Zero-Knowledge Security Engine'
+          : activeTab === 'settings'
+          ? 'Console Configuration'
+          : 'LedgerGuard Financial Console'
+      }
+      subtitle={
+        activeTab === 'customers'
+          ? `Manage verified enterprise customer records under ${currentTenant?.name}`
+          : activeTab === 'subscriptions'
+          ? `View available subscription plans and compute quotas for ${currentTenant?.name}`
+          : activeTab === 'transactions'
+          ? `Cryptographically sealed audit trail and settlement records`
+          : activeTab === 'tenants'
+          ? `Dynamically partitioned MongoDB database instances per organization`
+          : activeTab === 'security'
+          ? `ZK-SNARK proof verification and blinded computational commitments`
+          : activeTab === 'settings'
+          ? `Environment, currency preferences, and API keys`
+          : `Dynamic Multi-Tenant Billing Engine • Tenant: ${currentTenant?.name || 'Active'}`
+      }
+      actions={
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            leftIcon={<RefreshCw className={`w-3.5 h-3.5 ${isLoadingInvoices ? 'animate-spin' : ''}`} />}
+            onClick={() => {
+              loadInvoices();
+              if (currentTenant) loadCustomers(currentTenant.id);
+              showToast('Data synced successfully.', 'info');
+            }}
+          >
+            Sync Status
+          </Button>
 
-      <div className="flex flex-1">
-        <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
-
-        <main className="flex-1 p-8 overflow-y-auto max-w-7xl mx-auto space-y-6">
-          {/* Header & Quick Actions */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-slate-200">
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-xl font-bold text-slate-900 tracking-tight">
-                  LedgerGuard Engineering Console
-                </h1>
-                <Badge variant="zk" size="sm">Day 3: Tables & Pagination</Badge>
-              </div>
-              <p className="text-xs text-slate-500 mt-1">
-                Multi-Tenant Financial Engine • Organization: <span className="font-semibold text-slate-700">{currentTenant?.name}</span> ({currentTenant?.databaseName})
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                leftIcon={<RefreshCw className={`w-3.5 h-3.5 ${isLoadingInvoices ? 'animate-spin' : ''}`} />}
-                onClick={() => {
-                  loadInvoices();
-                  if (currentTenant) loadCustomers(currentTenant.id);
-                  showToast('Data refreshed successfully.', 'info');
-                }}
-              >
-                Sync Data
-              </Button>
-              {activeTab === 'customers' ? (
-                <Button
-                  variant="primary"
-                  size="sm"
-                  leftIcon={<Plus className="w-3.5 h-3.5" />}
-                  onClick={() => setIsAddCustomerOpen(true)}
-                >
-                  Add Customer
-                </Button>
-              ) : (
-                <Button
-                  variant="primary"
-                  size="sm"
-                  leftIcon={<Plus className="w-3.5 h-3.5" />}
-                  onClick={() => setIsCreateModalOpen(true)}
-                >
-                  Create Invoice
-                </Button>
-              )}
-            </div>
-          </div>
-
-          {/* Metric Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card className="hover:border-slate-300 transition-colors">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-slate-500">Gross Processed Volume</span>
-                <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                  <DollarSign className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="mt-3">
-                <div className="text-2xl font-bold text-slate-900 tracking-tight">
-                  {formatCurrency(142850)}
-                </div>
-                <div className="flex items-center gap-1.5 mt-1 text-xs text-emerald-600 font-medium">
-                  <ArrowUpRight className="w-3.5 h-3.5" />
-                  <span>+12.4% vs last billing cycle</span>
-                </div>
-              </div>
-            </Card>
-
-            <Card className="hover:border-slate-300 transition-colors">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-slate-500">Total Invoices</span>
-                <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center">
-                  <FileText className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="mt-3">
-                <div className="text-2xl font-bold text-slate-900 tracking-tight">{invoices.length}</div>
-                <div className="flex items-center gap-2 mt-1 text-xs text-slate-500">
-                  <span className="text-emerald-600 font-medium">
-                    {invoices.filter((i) => i.status === 'paid').length} paid
-                  </span>
-                  <span>•</span>
-                  <span className="text-amber-600 font-medium">
-                    {invoices.filter((i) => i.status === 'pending').length} pending
-                  </span>
-                </div>
-              </div>
-            </Card>
-
-            <Card className="hover:border-slate-300 transition-colors">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-slate-500">Active Customers</span>
-                <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-700 flex items-center justify-center">
-                  <Users className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="mt-3">
-                <div className="text-2xl font-bold text-slate-900 tracking-tight">{customers.length} Accounts</div>
-                <div className="flex items-center gap-1.5 mt-1 text-xs text-indigo-700 font-medium">
-                  <span>Tenant isolated directory</span>
-                </div>
-              </div>
-            </Card>
-
-            <Card className="hover:border-slate-300 transition-colors">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-slate-500">Tenant Isolation Level</span>
-                <div className="w-8 h-8 rounded-lg bg-sky-50 text-sky-700 flex items-center justify-center">
-                  <Building className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="mt-3">
-                <div className="text-2xl font-bold text-slate-900 tracking-tight font-mono text-xs">
-                  {currentTenant?.databaseName || 'Dynamic DB'}
-                </div>
-                <div className="flex items-center gap-1.5 mt-1 text-xs text-slate-500">
-                  <span>Isolated MongoDB database</span>
-                </div>
-              </div>
-            </Card>
-          </div>
-
-          {/* Conditional View Based on Active Tab */}
           {activeTab === 'customers' ? (
-            /* Customer Directory View */
-            <Card
-              title="Tenant Customer Directory"
-              subtitle={`Managing client records under ${currentTenant?.name || 'Active Tenant'}`}
-              action={
-                <div className="flex items-center gap-2">
-                  <div className="w-64">
-                    <Input
-                      placeholder="Search customers or company..."
-                      value={customerSearch}
-                      onChange={(e) => setCustomerSearch(e.target.value)}
-                      leftIcon={<Search className="w-3.5 h-3.5" />}
-                    />
-                  </div>
-                </div>
-              }
+            <Button
+              variant="primary"
+              size="sm"
+              leftIcon={<Plus className="w-3.5 h-3.5" />}
+              onClick={() => setIsAddCustomerOpen(true)}
             >
-              {customers.length === 0 ? (
-                <EmptyState
-                  icon={Users}
-                  title="No customers registered"
-                  description="Add client accounts to begin issuing tenant-specific invoices."
-                  action={
-                    <Button variant="primary" size="sm" onClick={() => setIsAddCustomerOpen(true)}>
-                      Add First Customer
-                    </Button>
-                  }
-                />
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead>
-                      <tr className="border-b border-slate-200 text-slate-400 font-semibold uppercase tracking-wider text-[10px]">
-                        <th className="pb-3">Client Contact</th>
-                        <th className="pb-3">Company</th>
-                        <th className="pb-3">Contact Email</th>
-                        <th className="pb-3">Phone</th>
-                        <th className="pb-3">Total Invoiced</th>
-                        <th className="pb-3">Status</th>
-                        <th className="pb-3 text-right">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 text-slate-700">
-                      {paginatedCustomers.map((cust) => (
-                        <tr key={cust.id} className="hover:bg-slate-50/80 transition-colors">
-                          <td className="py-3.5 font-medium text-slate-900">{cust.name}</td>
-                          <td className="py-3.5 font-semibold text-slate-800">{cust.company}</td>
-                          <td className="py-3.5 text-slate-600">{cust.email}</td>
-                          <td className="py-3.5 text-slate-500 font-mono text-[11px]">{cust.phone || '—'}</td>
-                          <td className="py-3.5 font-semibold text-slate-900">{formatCurrency(cust.totalBilled)}</td>
-                          <td className="py-3.5">
-                            <Badge variant={cust.status === 'active' ? 'success' : 'neutral'} size="sm">
-                              <span className="capitalize">{cust.status}</span>
-                            </Badge>
-                          </td>
-                          <td className="py-3.5 text-right">
-                            <button
-                              onClick={() => {
-                                setInvoiceFormData((prev) => ({
-                                  ...prev,
-                                  customerName: cust.company,
-                                  customerEmail: cust.email,
-                                }));
-                                setIsCreateModalOpen(true);
-                              }}
-                              className="text-slate-600 hover:text-slate-900 font-medium hover:underline text-[11px]"
-                            >
-                              New Invoice
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-
-                  <Pagination
-                    currentPage={customerPage}
-                    totalItems={customers.length}
-                    pageSize={customerPageSize}
-                    onPageChange={setCustomerPage}
-                    onPageSizeChange={setCustomerPageSize}
-                  />
-                </div>
-              )}
-            </Card>
+              Add Customer
+            </Button>
           ) : (
-            /* Default Dashboard / Invoices Table View */
-            <Card
-              title="Tenant Invoice Ledger"
-              subtitle={`Live records for ${currentTenant?.name || 'current tenant'} with sortable headers and ZK audit hashes`}
-              action={
-                <div className="flex items-center gap-2.5">
-                  <div className="w-56">
-                    <Input
-                      placeholder="Search invoices or customer..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      leftIcon={<Search className="w-3.5 h-3.5" />}
-                    />
-                  </div>
-
-                  <div className="w-36">
-                    <Select
-                      value={statusFilter}
-                      onChange={(e) => setStatusFilter(e.target.value as InvoiceStatus | 'all')}
-                      options={[
-                        { value: 'all', label: 'All Statuses' },
-                        { value: 'paid', label: 'Paid' },
-                        { value: 'pending', label: 'Pending' },
-                        { value: 'overdue', label: 'Overdue' },
-                      ]}
-                    />
-                  </div>
-                </div>
-              }
+            <Button
+              variant="primary"
+              size="sm"
+              leftIcon={<Plus className="w-3.5 h-3.5" />}
+              onClick={() => setIsCreateModalOpen(true)}
             >
-              {invoices.length === 0 ? (
-                <EmptyState
-                  icon={Filter}
-                  title="No invoices found"
-                  description={
-                    searchQuery
-                      ? `No invoices match your search query "${searchQuery}".`
-                      : 'No invoices match the selected filter.'
-                  }
-                  action={
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setSearchQuery('');
-                        setStatusFilter('all');
-                        showToast('Filters cleared.', 'info');
-                      }}
-                    >
-                      Clear Filters
-                    </Button>
-                  }
-                />
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead>
-                      <tr className="border-b border-slate-200 text-slate-400 font-semibold uppercase tracking-wider text-[10px] select-none">
-                        <th
-                          className="pb-3 cursor-pointer hover:text-slate-700 transition-colors"
-                          onClick={() => handleSort('invoiceNumber')}
-                        >
-                          <div className="flex items-center gap-1.5">
-                            <span>Invoice Number</span>
-                            {renderSortIcon('invoiceNumber')}
-                          </div>
-                        </th>
-                        <th
-                          className="pb-3 cursor-pointer hover:text-slate-700 transition-colors"
-                          onClick={() => handleSort('customerName')}
-                        >
-                          <div className="flex items-center gap-1.5">
-                            <span>Customer</span>
-                            {renderSortIcon('customerName')}
-                          </div>
-                        </th>
-                        <th
-                          className="pb-3 cursor-pointer hover:text-slate-700 transition-colors"
-                          onClick={() => handleSort('total')}
-                        >
-                          <div className="flex items-center gap-1.5">
-                            <span>Amount</span>
-                            {renderSortIcon('total')}
-                          </div>
-                        </th>
-                        <th className="pb-3">Status</th>
-                        <th className="pb-3">ZK Proof Hash</th>
-                        <th
-                          className="pb-3 cursor-pointer hover:text-slate-700 transition-colors"
-                          onClick={() => handleSort('dueDate')}
-                        >
-                          <div className="flex items-center gap-1.5">
-                            <span>Due Date</span>
-                            {renderSortIcon('dueDate')}
-                          </div>
-                        </th>
-                        <th className="pb-3 text-right">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 text-slate-700">
-                      {paginatedInvoices.map((inv) => (
-                        <tr key={inv.id} className="hover:bg-slate-50/80 transition-colors">
-                          <td className="py-3.5 font-mono font-semibold text-slate-900">
-                            {inv.invoiceNumber}
-                          </td>
-                          <td className="py-3.5">
-                            <div className="font-medium text-slate-900">{inv.customerName}</div>
-                            <div className="text-[11px] text-slate-400">{inv.customerEmail}</div>
-                          </td>
-                          <td className="py-3.5 font-semibold text-slate-900">
-                            {formatCurrency(inv.total, inv.currency)}
-                          </td>
-                          <td className="py-3.5">
-                            <Badge variant={getStatusBadgeVariant(inv.status)} size="sm">
-                              <span className="capitalize">{inv.status}</span>
-                            </Badge>
-                          </td>
-                          <td className="py-3.5">
-                            <Tooltip content="Deterministic proof verifies financial validity without exposing proprietary business details.">
-                              <div className="cursor-help">
-                                <Badge variant="zk" size="sm" icon={<ShieldCheck className="w-3 h-3 text-indigo-600" />}>
-                                  <span className="font-mono text-[10px]">{truncateHash(inv.zkProofHash)}</span>
-                                </Badge>
-                              </div>
-                            </Tooltip>
-                          </td>
-                          <td className="py-3.5 text-slate-500 font-mono text-[11px]">
-                            {inv.dueDate}
-                          </td>
-                          <td className="py-3.5 text-right">
-                            <button
-                              onClick={() =>
-                                showToast(`Proof Hash for ${inv.invoiceNumber}: ${inv.zkProofHash || 'N/A'}`, 'info')
-                              }
-                              className="text-slate-600 hover:text-slate-900 font-medium hover:underline text-[11px]"
-                            >
-                              Verify Proof
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-
-                  <Pagination
-                    currentPage={invoicePage}
-                    totalItems={invoices.length}
-                    pageSize={invoicePageSize}
-                    onPageChange={setInvoicePage}
-                    onPageSizeChange={setInvoicePageSize}
-                  />
-                </div>
-              )}
-            </Card>
+              Create Invoice
+            </Button>
           )}
-
-          {/* 28-Day Development Progress Tracking */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2">
-              <Card
-                title="28-Day Development Milestone Log"
-                subtitle="Live progress tracked on GitHub branch 'shraddha'"
-                action={<Badge variant="success">Day 3 Complete</Badge>}
-              >
-                <div className="space-y-3">
-                  <div className="flex items-start gap-3 p-3 rounded-lg bg-emerald-50/50 border border-emerald-200">
-                    <div className="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0 text-xs font-bold">
-                      ✓
-                    </div>
-                    <div>
-                      <div className="text-xs font-semibold text-slate-900">
-                        Day 1: Repository Setup & Frontend Foundations (Nov 12, 2026)
-                      </div>
-                      <p className="text-[11px] text-slate-600 mt-0.5">
-                        Branch <code className="bg-slate-200 px-1 py-0.5 rounded font-mono text-slate-800">shraddha</code> established. Vite + React 19 + TypeScript + Tailwind CSS and architecture docs.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-3 p-3 rounded-lg bg-emerald-50/50 border border-emerald-200">
-                    <div className="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0 text-xs font-bold">
-                      ✓
-                    </div>
-                    <div>
-                      <div className="text-xs font-semibold text-slate-900">
-                        Day 2: Financial Form Primitives & Modal System (Nov 13, 2026)
-                      </div>
-                      <p className="text-[11px] text-slate-600 mt-0.5">
-                        Built Input, Select, Modal, EmptyState, mock services, and interactive invoice creation with client-side validation.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-3 p-3 rounded-lg bg-emerald-50/50 border border-emerald-200">
-                    <div className="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0 text-xs font-bold">
-                      ✓
-                    </div>
-                    <div>
-                      <div className="text-xs font-semibold text-slate-900">
-                        Day 3: Reusable Table Pagination, Column Sorting & Toast System (Nov 14, 2026)
-                      </div>
-                      <p className="text-[11px] text-slate-600 mt-0.5">
-                        Delivered Pagination, column sort handlers, Tooltip component, Toast notification context, and dedicated Customer Directory module.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            </div>
-
-            <div>
-              <Card
-                title="Backend Architecture Sync"
-                subtitle="Status of contracts in FRONTEND_BACKEND_INTEGRATION.md"
-              >
-                <div className="space-y-3 text-xs">
-                  <div className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 border border-slate-200">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                      <span className="font-medium text-slate-800">Tenant Module</span>
-                    </div>
-                    <Badge variant="success" size="sm">Backend Model</Badge>
-                  </div>
-
-                  <div className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 border border-slate-200">
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-4 h-4 text-amber-500" />
-                      <span className="font-medium text-slate-800">REST API Server</span>
-                    </div>
-                    <Badge variant="warning" size="sm">Pending Backend</Badge>
-                  </div>
-
-                  <div className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 border border-slate-200">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-indigo-600" />
-                      <span className="font-medium text-slate-800">Customer & Invoice Services</span>
-                    </div>
-                    <Badge variant="zk" size="sm">Active (Mocked)</Badge>
-                  </div>
-                </div>
-              </Card>
+        </div>
+      }
+    >
+      {/* 4 Financial Metric Cards (Always visible across dashboard views) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="hover:border-slate-300 transition-colors">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-slate-500">Gross Processed Volume</span>
+            <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+              <DollarSign className="w-4 h-4" />
             </div>
           </div>
-        </main>
+          <div className="mt-3">
+            <div className="text-2xl font-bold text-slate-900 tracking-tight">
+              {formatCurrency(142850)}
+            </div>
+            <div className="flex items-center gap-1.5 mt-1 text-xs text-emerald-600 font-medium">
+              <ArrowUpRight className="w-3.5 h-3.5" />
+              <span>+12.4% vs last billing cycle</span>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="hover:border-slate-300 transition-colors">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-slate-500">Total Invoices</span>
+            <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center">
+              <FileText className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="mt-3">
+            <div className="text-2xl font-bold text-slate-900 tracking-tight">{invoices.length}</div>
+            <div className="flex items-center gap-2 mt-1 text-xs text-slate-500">
+              <span className="text-emerald-600 font-medium">
+                {invoices.filter((i) => i.status === 'paid').length} paid
+              </span>
+              <span>•</span>
+              <span className="text-amber-600 font-medium">
+                {invoices.filter((i) => i.status === 'pending').length} pending
+              </span>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="hover:border-slate-300 transition-colors">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-slate-500">Active Customers</span>
+            <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-700 flex items-center justify-center">
+              <Users className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="mt-3">
+            <div className="text-2xl font-bold text-slate-900 tracking-tight">{customers.length} Accounts</div>
+            <div className="flex items-center gap-1.5 mt-1 text-xs text-indigo-700 font-medium">
+              <span>Tenant isolated directory</span>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="hover:border-slate-300 transition-colors">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-slate-500">Tenant Isolation Level</span>
+            <div className="w-8 h-8 rounded-lg bg-sky-50 text-sky-700 flex items-center justify-center">
+              <Building className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="mt-3">
+            <div className="text-2xl font-bold text-slate-900 tracking-tight font-mono text-xs truncate">
+              {currentTenant?.databaseName || 'Dynamic DB'}
+            </div>
+            <div className="flex items-center gap-1.5 mt-1 text-xs text-slate-500">
+              <span>Partitioned MongoDB Schema</span>
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      {/* Main Routed Content Based on Active Tab */}
+      {activeTab === 'customers' ? (
+        /* Customers View */
+        <Card
+          title="Customer Accounts"
+          subtitle={`Verified clients for ${currentTenant?.name}`}
+          action={
+            <div className="w-64">
+              <Input
+                placeholder="Search customers or company..."
+                value={customerSearch}
+                onChange={(e) => setCustomerSearch(e.target.value)}
+                leftIcon={<Search className="w-3.5 h-3.5" />}
+              />
+            </div>
+          }
+        >
+          {customers.length === 0 ? (
+            <EmptyState
+              icon={Users}
+              title="No customers registered"
+              description="Register your first enterprise client account to begin issuing tenant-specific invoices."
+              action={
+                <Button variant="primary" size="sm" onClick={() => setIsAddCustomerOpen(true)}>
+                  Add First Customer
+                </Button>
+              }
+            />
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-slate-200 text-slate-400 font-semibold uppercase tracking-wider text-[10px]">
+                    <th className="pb-3">Client Contact</th>
+                    <th className="pb-3">Company</th>
+                    <th className="pb-3">Contact Email</th>
+                    <th className="pb-3">Phone</th>
+                    <th className="pb-3">Total Invoiced</th>
+                    <th className="pb-3">Status</th>
+                    <th className="pb-3 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-slate-700">
+                  {paginatedCustomers.map((cust) => (
+                    <tr key={cust.id} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="py-3.5 font-medium text-slate-900">{cust.name}</td>
+                      <td className="py-3.5 font-semibold text-slate-800">{cust.company}</td>
+                      <td className="py-3.5 text-slate-600">{cust.email}</td>
+                      <td className="py-3.5 text-slate-500 font-mono text-[11px]">{cust.phone || '—'}</td>
+                      <td className="py-3.5 font-semibold text-slate-900">{formatCurrency(cust.totalBilled)}</td>
+                      <td className="py-3.5">
+                        <Badge variant={cust.status === 'active' ? 'success' : 'neutral'} size="sm">
+                          <span className="capitalize">{cust.status}</span>
+                        </Badge>
+                      </td>
+                      <td className="py-3.5 text-right">
+                        <button
+                          onClick={() => {
+                            setInvoiceFormData((prev) => ({
+                              ...prev,
+                              customerName: cust.company,
+                              customerEmail: cust.email,
+                            }));
+                            setIsCreateModalOpen(true);
+                          }}
+                          className="text-slate-600 hover:text-slate-900 font-medium hover:underline text-[11px]"
+                        >
+                          New Invoice
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              <Pagination
+                currentPage={customerPage}
+                totalItems={customers.length}
+                pageSize={customerPageSize}
+                onPageChange={setCustomerPage}
+                onPageSizeChange={setCustomerPageSize}
+              />
+            </div>
+          )}
+        </Card>
+      ) : activeTab === 'subscriptions' ? (
+        /* Subscriptions & Tiers View */
+        <div className="space-y-6">
+          <Card
+            title="Tenant Subscription Tiers"
+            subtitle="Configured billing engine limits and Zero-Knowledge verification proof quotas"
+          >
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
+              {subscriptionPlans.map((plan) => {
+                const isCurrent = currentTenant?.plan.toLowerCase() === plan.name.toLowerCase().split(' ')[0];
+                return (
+                  <div
+                    key={plan.id}
+                    className={`rounded-xl border p-6 flex flex-col justify-between transition-all ${
+                      plan.isPopular
+                        ? 'border-slate-900 shadow-md bg-white relative'
+                        : 'border-slate-200 bg-white hover:border-slate-300'
+                    }`}
+                  >
+                    {plan.isPopular && (
+                      <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] font-semibold uppercase tracking-wider px-3 py-0.5 rounded-full">
+                        Recommended
+                      </div>
+                    )}
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-bold text-slate-900 text-base">{plan.name}</h3>
+                        {isCurrent && <Badge variant="success" size="sm">Active Plan</Badge>}
+                      </div>
+                      <p className="text-xs text-slate-500 mt-1">{plan.description}</p>
+                      <div className="mt-4 flex items-baseline gap-1">
+                        <span className="text-3xl font-bold text-slate-900">${plan.priceMonthly}</span>
+                        <span className="text-xs text-slate-500">/ month</span>
+                      </div>
+
+                      <div className="mt-6 space-y-2.5 text-xs text-slate-600">
+                        {plan.features.map((feat, idx) => (
+                          <div key={idx} className="flex items-center gap-2">
+                            <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                            <span>{feat}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="mt-6 pt-4 border-t border-slate-100">
+                      <Button
+                        variant={isCurrent ? 'secondary' : plan.isPopular ? 'primary' : 'outline'}
+                        className="w-full text-xs"
+                        disabled={isCurrent}
+                        onClick={() => showToast(`Selected upgrade to ${plan.name} plan.`, 'success')}
+                      >
+                        {isCurrent ? 'Current Plan' : 'Select Plan'}
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+        </div>
+      ) : activeTab === 'transactions' ? (
+        /* Transactions & ZK Ledger View */
+        <Card
+          title="Immutable Zero-Knowledge Ledger"
+          subtitle="Cryptographically sealed settlement transactions with blind verification proof hashes"
+        >
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="border-b border-slate-200 text-slate-400 font-semibold uppercase tracking-wider text-[10px]">
+                  <th className="pb-3">Transaction ID</th>
+                  <th className="pb-3">Invoice Ref</th>
+                  <th className="pb-3">Customer</th>
+                  <th className="pb-3">Amount</th>
+                  <th className="pb-3">Payment Method</th>
+                  <th className="pb-3">Proof Status</th>
+                  <th className="pb-3">Timestamp</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-slate-700">
+                {transactions.map((tx) => (
+                  <tr key={tx.id} className="hover:bg-slate-50/80 transition-colors">
+                    <td className="py-3.5 font-mono font-medium text-slate-900">{tx.id}</td>
+                    <td className="py-3.5 font-mono text-slate-600">{tx.invoiceId}</td>
+                    <td className="py-3.5 font-medium text-slate-800">{tx.customerName}</td>
+                    <td className="py-3.5 font-semibold text-slate-900">{formatCurrency(tx.amount)}</td>
+                    <td className="py-3.5 text-slate-600">{tx.paymentMethod}</td>
+                    <td className="py-3.5">
+                      <Badge variant="zk" size="sm" icon={<ShieldCheck className="w-3 h-3 text-indigo-600" />}>
+                        ZK Verified
+                      </Badge>
+                    </td>
+                    <td className="py-3.5 text-slate-500 font-mono text-[11px]">{new Date(tx.timestamp).toLocaleString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      ) : activeTab === 'tenants' ? (
+        /* Multi-Tenant Organizations View */
+        <Card
+          title="Multi-Tenant Partitioned Architecture"
+          subtitle="Isolated database storage and dedicated encryption configurations per tenant"
+        >
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {tenants.map((t) => (
+              <div
+                key={t.id}
+                className={`p-4 rounded-xl border transition-all ${
+                  t.id === currentTenant?.id
+                    ? 'border-slate-900 bg-slate-50/50 shadow-xs'
+                    : 'border-slate-200 bg-white hover:border-slate-300'
+                }`}
+              >
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900">{t.name}</h3>
+                    <p className="text-[11px] font-mono text-slate-500 mt-0.5">{t.databaseName}</p>
+                  </div>
+                  <Badge variant={t.status === 'active' ? 'success' : 'neutral'} size="sm">
+                    {t.status}
+                  </Badge>
+                </div>
+                <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                  <span className="text-slate-500">Tier: <strong className="text-slate-700">{t.plan}</strong></span>
+                  <Button
+                    variant={t.id === currentTenant?.id ? 'secondary' : 'outline'}
+                    size="sm"
+                    disabled={t.id === currentTenant?.id}
+                    onClick={() => {
+                      tenantService.setActiveTenant(t.id);
+                      setCurrentTenant(t);
+                      showToast(`Switched active tenant to ${t.name}`, 'info');
+                    }}
+                  >
+                    {t.id === currentTenant?.id ? 'Current' : 'Switch'}
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      ) : activeTab === 'security' ? (
+        /* Security & ZK Architecture View */
+        <div className="space-y-6">
+          <Card
+            title="Zero-Knowledge Privacy Architecture"
+            subtitle="Verified client-side proof validation & isolated cryptographic commitments"
+          >
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+                <div className="flex items-center gap-2 text-slate-900 font-semibold text-xs">
+                  <Lock className="w-4 h-4 text-emerald-600" />
+                  <span>Blinded Financial Invoicing</span>
+                </div>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  LedgerGuard produces zk-SNARK commitments for every transaction. External regulators and auditors verify total revenue without inspecting individual line items or proprietary partner rates.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+                <div className="flex items-center gap-2 text-slate-900 font-semibold text-xs">
+                  <ShieldCheck className="w-4 h-4 text-indigo-600" />
+                  <span>Cross-Tenant Isolation Verifier</span>
+                </div>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  Cryptographic boundaries ensure that tenant encryption keys remain segregated in memory and at rest across dynamically provisioned MongoDB databases.
+                </p>
+              </div>
+            </div>
+          </Card>
+        </div>
+      ) : activeTab === 'settings' ? (
+        /* Settings View */
+        <Card
+          title="Console & Organization Preferences"
+          subtitle="Manage tenant configuration parameters and default billing settings"
+        >
+          <div className="max-w-xl space-y-4 text-xs">
+            <Input label="Organization Legal Name" defaultValue={currentTenant?.name} />
+            <Input label="Assigned Dynamic Database" defaultValue={currentTenant?.databaseName} disabled />
+            <Select
+              label="Primary Settlement Currency"
+              options={[
+                { value: 'USD', label: 'USD ($) - US Dollar' },
+                { value: 'EUR', label: 'EUR (€) - Euro' },
+                { value: 'GBP', label: 'GBP (£) - British Pound' },
+              ]}
+            />
+            <div className="pt-2">
+              <Button variant="primary" size="sm" onClick={() => showToast('Preferences updated.', 'success')}>
+                Save Preferences
+              </Button>
+            </div>
+          </div>
+        </Card>
+      ) : (
+        /* Default Dashboard / Invoices Table View */
+        <Card
+          title="Tenant Invoice Ledger"
+          subtitle={`Live records for ${currentTenant?.name || 'current tenant'} with sortable headers and ZK audit hashes`}
+          action={
+            <div className="flex items-center gap-2.5">
+              <div className="w-56">
+                <Input
+                  placeholder="Search invoices or customer..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  leftIcon={<Search className="w-3.5 h-3.5" />}
+                />
+              </div>
+
+              <div className="w-36">
+                <Select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value as InvoiceStatus | 'all')}
+                  options={[
+                    { value: 'all', label: 'All Statuses' },
+                    { value: 'paid', label: 'Paid' },
+                    { value: 'pending', label: 'Pending' },
+                    { value: 'overdue', label: 'Overdue' },
+                  ]}
+                />
+              </div>
+            </div>
+          }
+        >
+          {invoices.length === 0 ? (
+            <EmptyState
+              icon={Filter}
+              title="No invoices found"
+              description={
+                searchQuery
+                  ? `No invoices match your search query "${searchQuery}".`
+                  : 'No invoices match the selected filter.'
+              }
+              action={
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setSearchQuery('');
+                    setStatusFilter('all');
+                    showToast('Filters cleared.', 'info');
+                  }}
+                >
+                  Clear Filters
+                </Button>
+              }
+            />
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-slate-200 text-slate-400 font-semibold uppercase tracking-wider text-[10px] select-none">
+                    <th
+                      className="pb-3 cursor-pointer hover:text-slate-700 transition-colors"
+                      onClick={() => handleSort('invoiceNumber')}
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <span>Invoice Number</span>
+                        {renderSortIcon('invoiceNumber')}
+                      </div>
+                    </th>
+                    <th
+                      className="pb-3 cursor-pointer hover:text-slate-700 transition-colors"
+                      onClick={() => handleSort('customerName')}
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <span>Customer</span>
+                        {renderSortIcon('customerName')}
+                      </div>
+                    </th>
+                    <th
+                      className="pb-3 cursor-pointer hover:text-slate-700 transition-colors"
+                      onClick={() => handleSort('total')}
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <span>Amount</span>
+                        {renderSortIcon('total')}
+                      </div>
+                    </th>
+                    <th className="pb-3">Status</th>
+                    <th className="pb-3">ZK Proof Hash</th>
+                    <th
+                      className="pb-3 cursor-pointer hover:text-slate-700 transition-colors"
+                      onClick={() => handleSort('dueDate')}
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <span>Due Date</span>
+                        {renderSortIcon('dueDate')}
+                      </div>
+                    </th>
+                    <th className="pb-3 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-slate-700">
+                  {paginatedInvoices.map((inv) => (
+                    <tr key={inv.id} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="py-3.5 font-mono font-semibold text-slate-900">
+                        {inv.invoiceNumber}
+                      </td>
+                      <td className="py-3.5">
+                        <div className="font-medium text-slate-900">{inv.customerName}</div>
+                        <div className="text-[11px] text-slate-400">{inv.customerEmail}</div>
+                      </td>
+                      <td className="py-3.5 font-semibold text-slate-900">
+                        {formatCurrency(inv.total, inv.currency)}
+                      </td>
+                      <td className="py-3.5">
+                        <Badge variant={getStatusBadgeVariant(inv.status)} size="sm">
+                          <span className="capitalize">{inv.status}</span>
+                        </Badge>
+                      </td>
+                      <td className="py-3.5">
+                        <Tooltip content="Deterministic proof verifies financial validity without exposing proprietary business details.">
+                          <div className="cursor-help">
+                            <Badge variant="zk" size="sm" icon={<ShieldCheck className="w-3 h-3 text-indigo-600" />}>
+                              <span className="font-mono text-[10px]">{truncateHash(inv.zkProofHash)}</span>
+                            </Badge>
+                          </div>
+                        </Tooltip>
+                      </td>
+                      <td className="py-3.5 text-slate-500 font-mono text-[11px]">
+                        {inv.dueDate}
+                      </td>
+                      <td className="py-3.5 text-right">
+                        <button
+                          onClick={() =>
+                            showToast(`Proof Hash for ${inv.invoiceNumber}: ${inv.zkProofHash || 'N/A'}`, 'info')
+                          }
+                          className="text-slate-600 hover:text-slate-900 font-medium hover:underline text-[11px]"
+                        >
+                          Verify Proof
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              <Pagination
+                currentPage={invoicePage}
+                totalItems={invoices.length}
+                pageSize={invoicePageSize}
+                onPageChange={setInvoicePage}
+                onPageSizeChange={setInvoicePageSize}
+              />
+            </div>
+          )}
+        </Card>
+      )}
+
+      {/* 28-Day Development Progress Tracking */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <Card
+            title="28-Day Development Milestone Log"
+            subtitle="Live progress tracked on GitHub branch 'shraddha'"
+            action={<Badge variant="success">Day 4 Complete</Badge>}
+          >
+            <div className="space-y-3">
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-emerald-50/50 border border-emerald-200">
+                <div className="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0 text-xs font-bold">
+                  ✓
+                </div>
+                <div>
+                  <div className="text-xs font-semibold text-slate-900">
+                    Day 1: Repository Setup & Frontend Foundations (Nov 12, 2026)
+                  </div>
+                  <p className="text-[11px] text-slate-600 mt-0.5">
+                    Branch <code className="bg-slate-200 px-1 py-0.5 rounded font-mono text-slate-800">shraddha</code> established. Vite + React 19 + TypeScript + Tailwind CSS and architecture docs.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-emerald-50/50 border border-emerald-200">
+                <div className="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0 text-xs font-bold">
+                  ✓
+                </div>
+                <div>
+                  <div className="text-xs font-semibold text-slate-900">
+                    Day 2: Financial Form Primitives & Modal System (Nov 13, 2026)
+                  </div>
+                  <p className="text-[11px] text-slate-600 mt-0.5">
+                    Built Input, Select, Modal, EmptyState, mock services, and interactive invoice creation with client-side validation.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-emerald-50/50 border border-emerald-200">
+                <div className="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0 text-xs font-bold">
+                  ✓
+                </div>
+                <div>
+                  <div className="text-xs font-semibold text-slate-900">
+                    Day 3: Reusable Table Pagination, Column Sorting & Toast System (Nov 14, 2026)
+                  </div>
+                  <p className="text-[11px] text-slate-600 mt-0.5">
+                    Delivered Pagination, column sort handlers, Tooltip component, Toast notification context, and dedicated Customer Directory module.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-emerald-50/50 border border-emerald-200">
+                <div className="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0 text-xs font-bold">
+                  ✓
+                </div>
+                <div>
+                  <div className="text-xs font-semibold text-slate-900">
+                    Day 4: Navigation, Modular Sidebar, Breadcrumbs & Application Layout (Nov 15, 2026)
+                  </div>
+                  <p className="text-[11px] text-slate-600 mt-0.5">
+                    Created DashboardLayout, responsive mobile drawer with hamburger toggle, collapsible desktop sidebar, Breadcrumbs navigation, and subscription/transaction modules.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </Card>
+        </div>
+
+        <div>
+          <Card
+            title="Backend Architecture Sync"
+            subtitle="Status of contracts in FRONTEND_BACKEND_INTEGRATION.md"
+          >
+            <div className="space-y-3 text-xs">
+              <div className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 border border-slate-200">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  <span className="font-medium text-slate-800">Tenant Module</span>
+                </div>
+                <Badge variant="success" size="sm">Backend Model</Badge>
+              </div>
+
+              <div className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 border border-slate-200">
+                <div className="flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-amber-500" />
+                  <span className="font-medium text-slate-800">REST API Server</span>
+                </div>
+                <Badge variant="warning" size="sm">Pending Backend</Badge>
+              </div>
+
+              <div className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 border border-slate-200">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-indigo-600" />
+                  <span className="font-medium text-slate-800">Frontend Modular Layout</span>
+                </div>
+                <Badge variant="zk" size="sm">Active</Badge>
+              </div>
+            </div>
+          </Card>
+        </div>
       </div>
 
       {/* Invoice Creation Modal */}
@@ -910,7 +1168,7 @@ export function App() {
           />
         </form>
       </Modal>
-    </div>
+    </DashboardLayout>
   );
 }
 
