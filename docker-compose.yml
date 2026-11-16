@@ -1,0 +1,56 @@
+# LedgerGuard local infrastructure (Person 4).
+#   docker compose up -d --wait     start MongoDB (single-node replica set) + Redis
+#   docker compose down -v          stop and delete all data
+#
+# MongoDB multi-document transactions need a replica set, so mongod runs with --replSet rs0 and the
+# healthcheck initiates the set automatically the first time (it is idempotent).
+#
+# Host URIs (backend running on your machine):
+#   MONGODB_MASTER_URI=mongodb://127.0.0.1:27017/ledgerguard_master?replicaSet=rs0
+#   REDIS_URL=redis://127.0.0.1:6379
+# Tests use their own Redis database (index 15) - see backend/src/tests/helpers/test-redis.ts.
+#
+# Backend running INSIDE Docker: the replica-set member advertises "localhost:27017", so use
+#   mongodb://mongodb:27017/ledgerguard_master?directConnection=true   and   redis://redis:6379
+
+services:
+  mongodb:
+    image: mongo:8
+    container_name: ledgerguard-mongodb
+    restart: unless-stopped
+    command: ['mongod', '--replSet', 'rs0', '--bind_ip_all']
+    ports:
+      - '27017:27017'
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'mongosh',
+          '--quiet',
+          '--eval',
+          "try { rs.status() } catch (e) { rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'localhost:27017' }] }) }; quit(db.hello().isWritablePrimary ? 0 : 1)",
+        ]
+      interval: 5s
+      timeout: 10s
+      retries: 20
+      start_period: 5s
+
+  redis:
+    image: redis:7-alpine
+    container_name: ledgerguard-redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  mongo_data:
+  redis_data:

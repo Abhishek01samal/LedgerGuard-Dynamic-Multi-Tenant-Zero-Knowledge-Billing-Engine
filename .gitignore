@@ -19,3 +19,6 @@ backend/keys/*.key
 .vscode/
 .idea/
 
+# Confidential - never commit or push
+Updates for Weerk 2/
+

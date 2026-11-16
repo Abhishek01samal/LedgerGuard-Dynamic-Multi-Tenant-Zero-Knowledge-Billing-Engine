@@ -82,4 +82,3 @@ export function setCookies(res: Response): string[] {
   if (Array.isArray(raw)) return raw.filter((c): c is string => typeof c === 'string');
   return typeof raw === 'string' ? [raw] : [];
 }
-
