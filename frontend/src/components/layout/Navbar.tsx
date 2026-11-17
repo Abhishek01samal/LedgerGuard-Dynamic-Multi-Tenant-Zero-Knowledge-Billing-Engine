@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShieldCheck, Building2, Bell, UserCheck, ChevronDown, Check, Menu } from 'lucide-react';
+import { ShieldCheck, Building2, Bell, UserCheck, ChevronDown, Check, Menu, Globe } from 'lucide-react';
 import { Badge } from '../common/Badge';
 import type { Tenant } from '../../types';
 
@@ -8,6 +8,7 @@ export interface NavbarProps {
   currentTenant?: Tenant;
   onTenantChange?: (tenant: Tenant) => void;
   onToggleMobileMenu?: () => void;
+  onViewLandingPage?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -15,6 +16,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   currentTenant,
   onTenantChange,
   onToggleMobileMenu,
+  onViewLandingPage,
 }) => {
   const [isTenantDropdownOpen, setIsTenantDropdownOpen] = useState(false);
 
@@ -105,6 +107,17 @@ export const Navbar: React.FC<NavbarProps> = ({
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
           <span className="font-medium">ZK Engine: Operational</span>
         </div>
+
+        {onViewLandingPage && (
+          <button
+            onClick={onViewLandingPage}
+            className="hidden sm:flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-900 font-medium px-2.5 py-1 rounded-lg hover:bg-slate-100 transition-colors"
+            title="Switch to public marketing landing page"
+          >
+            <Globe className="w-3.5 h-3.5 text-slate-400" />
+            <span>Public Site</span>
+          </button>
+        )}
 
         <button className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors relative">
           <Bell className="w-4 h-4" />

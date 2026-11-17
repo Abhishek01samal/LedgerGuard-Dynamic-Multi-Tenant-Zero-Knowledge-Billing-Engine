@@ -15,6 +15,7 @@ The LedgerGuard frontend is built as an enterprise-grade financial management pl
 The application follows modular component-driven development:
 - **Presentation Layer:** Reusable, accessible UI primitives styled with Tailwind CSS avoiding generic AI designs.
 - **Layout Layer:** Modular application shell (`DashboardLayout.tsx`) managing top navigation, collapsible sidebar, responsive mobile drawer, and breadcrumbs navigation.
+- **Public & Marketing Layer:** High-converting, educational Landing Page (`LandingPage.tsx`) showcasing the mathematical principles of Zero-Knowledge billing and multi-tenant database partitioning.
 - **Service Layer:** Modular TypeScript service adapters with simulated cryptographic hashing and asynchronous delays, structured for 1-to-1 replacement with live backend REST endpoints.
 - **State Architecture:** Tenant-isolated local and reactive state, ensuring no cross-tenant data leakage in the UI layer.
 
@@ -78,15 +79,28 @@ The application follows modular component-driven development:
   - `transaction.service.ts`: Immutable ZK ledger transactions with payment methods (ACH, Card, Wire) and timestamps.
   - Dynamic routed content in `App.tsx` for Subscriptions, Transactions, Multi-Tenant partition status, Security verification console, and Settings.
 
+### Day 5 (2026-11-17)
+- **Product Landing Page:**
+  - `LandingPage.tsx`: Developed clean, human-designed SaaS product landing page with sticky public navbar, interactive hero section, and responsive footer.
+- **Architecture Comparison Matrix:**
+  - Side-by-side comparison of conventional billing SaaS (shared tables, exposed financial rates, manual reconciliation) versus LedgerGuard ZK-Engine (partitioned schemas, blinded commitments, instant cryptographic verification).
+- **Interactive Pricing Calculator:**
+  - Dynamic monthly vs annual billing toggle offering automatic 20% annual discount calculations across Starter, Professional, and Enterprise tiers.
+- **Interactive Technical Security FAQ:**
+  - Accordion interface addressing zero-knowledge proofs, dynamic multi-tenant partitioning, ERP integration, and service layer architecture.
+- **Seamless Public/Console Toggle:**
+  - Added "Public Site" toggle in console `Navbar.tsx` and "Launch Console" CTAs across the Landing Page, allowing reviewers to evaluate both customer-facing marketing and authenticated admin consoles.
+
 ---
 
 ## 3. Component Reference Guide
 
 | Component | Path | Description & Props |
 |:---|:---|:---|
-| `DashboardLayout` | `src/layouts/DashboardLayout.tsx` | App shell: `activeTab`, `onTabChange`, `tenants`, `currentTenant`, `breadcrumbs`, `title`, `actions`. |
+| `LandingPage` | `src/pages/LandingPage.tsx` | Public marketing & architecture showcase: `onEnterConsole`. |
+| `DashboardLayout` | `src/layouts/DashboardLayout.tsx` | App shell: `activeTab`, `onTabChange`, `tenants`, `currentTenant`, `breadcrumbs`, `title`, `actions`, `onViewLandingPage`. |
 | `Breadcrumbs` | `src/components/layout/Breadcrumbs.tsx` | Path navigation: `items: BreadcrumbItem[]`, `onHomeClick`. |
-| `Navbar` | `src/components/layout/Navbar.tsx` | Top navigation with mobile hamburger trigger, interactive tenant switcher, ZK status, and user profile. |
+| `Navbar` | `src/components/layout/Navbar.tsx` | Top navigation with mobile hamburger trigger, interactive tenant switcher, ZK status, user profile, and landing page switch. |
 | `Sidebar` | `src/components/layout/Sidebar.tsx` | Responsive sidebar: `isMobileOpen`, `onCloseMobile`, `isCollapsed`, `onToggleCollapse`, notification badges. |
 | `Button` | `src/components/common/Button.tsx` | Variants: `primary`, `secondary`, `outline`, `ghost`, `danger`. Sizes: `sm`, `md`, `lg`. Supports `isLoading`. |
 | `Input` | `src/components/common/Input.tsx` | Standard input with `label`, `error`, `helperText`, `leftIcon`, `rightIcon`. Focus ring with financial slate tint. |

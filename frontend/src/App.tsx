@@ -39,6 +39,7 @@ import { customerService } from './services/customer.service';
 import { tenantService } from './services/tenant.service';
 import { subscriptionService, type SubscriptionPlan } from './services/subscription.service';
 import { transactionService } from './services/transaction.service';
+import { LandingPage } from './pages/LandingPage';
 import type { Invoice, Tenant, InvoiceStatus, Customer, Transaction } from './types';
 import type { BreadcrumbItem } from './components/layout/Breadcrumbs';
 
@@ -47,6 +48,7 @@ type SortOrder = 'asc' | 'desc';
 
 export function App() {
   const { showToast } = useToast();
+  const [viewMode, setViewMode] = useState<'console' | 'landing'>('console');
   const [activeTab, setActiveTab] = useState('dashboard');
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [currentTenant, setCurrentTenant] = useState<Tenant | undefined>(undefined);
@@ -302,6 +304,10 @@ export function App() {
     }
   };
 
+  if (viewMode === 'landing') {
+    return <LandingPage onEnterConsole={() => setViewMode('console')} />;
+  }
+
   return (
     <DashboardLayout
       activeTab={activeTab}
@@ -313,6 +319,7 @@ export function App() {
         setCurrentTenant(t);
         showToast(`Active organization switched to ${t.name}`, 'info');
       }}
+      onViewLandingPage={() => setViewMode('landing')}
       breadcrumbs={getBreadcrumbs()}
       title={
         activeTab === 'customers'
@@ -901,7 +908,7 @@ export function App() {
           <Card
             title="28-Day Development Milestone Log"
             subtitle="Live progress tracked on GitHub branch 'shraddha'"
-            action={<Badge variant="success">Day 4 Complete</Badge>}
+            action={<Badge variant="success">Day 5 Complete</Badge>}
           >
             <div className="space-y-3">
               <div className="flex items-start gap-3 p-3 rounded-lg bg-emerald-50/50 border border-emerald-200">
@@ -956,6 +963,20 @@ export function App() {
                   </div>
                   <p className="text-[11px] text-slate-600 mt-0.5">
                     Created DashboardLayout, responsive mobile drawer with hamburger toggle, collapsible desktop sidebar, Breadcrumbs navigation, and subscription/transaction modules.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-emerald-50/50 border border-emerald-200">
+                <div className="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0 text-xs font-bold">
+                  ✓
+                </div>
+                <div>
+                  <div className="text-xs font-semibold text-slate-900">
+                    Day 5: Product Landing Page & Zero-Knowledge Architecture Showcase (Nov 17, 2026)
+                  </div>
+                  <p className="text-[11px] text-slate-600 mt-0.5">
+                    Engineered high-converting public landing page, interactive pricing calculator with annual discounts, architecture comparison matrix, and technical security FAQ.
                   </p>
                 </div>
               </div>
