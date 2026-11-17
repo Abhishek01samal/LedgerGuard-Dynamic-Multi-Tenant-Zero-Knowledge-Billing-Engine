@@ -8,6 +8,17 @@ export class LockUnavailableError extends Error {
   }
 }
 
+/**
+ * A business/consistency failure while writing the ledger. The MongoDB
+ * transaction has been rolled back; a FAILED record is stored for audit.
+ */
+export class LedgerProcessingError extends AppError {
+  constructor(message: string, code = 'TRANSACTION_FAILED') {
+    super(422, message, code);
+    this.name = 'LedgerProcessingError';
+  }
+}
+
 /** Duplicate key reused with a different payload. */
 export const idempotencyKeyReused = (): AppError =>
   new AppError(409, 'This idempotency key was already used with a different request payload', 'IDEMPOTENCY_KEY_REUSED');

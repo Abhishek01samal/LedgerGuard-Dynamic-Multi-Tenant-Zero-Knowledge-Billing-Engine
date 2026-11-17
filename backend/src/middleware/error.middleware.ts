@@ -7,6 +7,8 @@ export class AppError extends Error {
     public readonly statusCode: number,
     message: string,
     public readonly code: string = 'ERROR',
+    /** Optional safe payload returned as `data` (e.g. the FAILED transaction record). */
+    public readonly data?: unknown,
   ) {
     super(message);
     this.name = 'AppError';
@@ -28,7 +30,12 @@ export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
     return;
   }
   if (err instanceof AppError) {
-    res.status(err.statusCode).json({ success: false, message: err.message, code: err.code });
+    res.status(err.statusCode).json({
+      success: false,
+      message: err.message,
+      code: err.code,
+      ...(err.data !== undefined ? { data: err.data } : {}),
+    });
     return;
   }
   console.error('Unhandled error:', err);
