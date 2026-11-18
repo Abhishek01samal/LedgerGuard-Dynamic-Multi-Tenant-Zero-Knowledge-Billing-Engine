@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShieldCheck, Building2, Bell, UserCheck, ChevronDown, Check, Menu, Globe } from 'lucide-react';
+import { ShieldCheck, Building2, Bell, UserCheck, ChevronDown, Check, Menu, Globe, LogOut } from 'lucide-react';
 import { Badge } from '../common/Badge';
 import type { Tenant } from '../../types';
 
@@ -9,6 +9,7 @@ export interface NavbarProps {
   onTenantChange?: (tenant: Tenant) => void;
   onToggleMobileMenu?: () => void;
   onViewLandingPage?: () => void;
+  onLogout?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -17,6 +18,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onTenantChange,
   onToggleMobileMenu,
   onViewLandingPage,
+  onLogout,
 }) => {
   const [isTenantDropdownOpen, setIsTenantDropdownOpen] = useState(false);
 
@@ -135,6 +137,17 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
             <div className="text-[11px] text-slate-500">Frontend Intern (L1)</div>
           </div>
+
+          {onLogout && (
+            <button
+              onClick={onLogout}
+              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors ml-1"
+              title="Sign out of console"
+              aria-label="Sign out"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          )}
         </div>
       </div>
     </header>

@@ -15,6 +15,7 @@ The LedgerGuard frontend is built as an enterprise-grade financial management pl
 The application follows modular component-driven development:
 - **Presentation Layer:** Reusable, accessible UI primitives styled with Tailwind CSS avoiding generic AI designs.
 - **Layout Layer:** Modular application shell (`DashboardLayout.tsx`) managing top navigation, collapsible sidebar, responsive mobile drawer, and breadcrumbs navigation.
+- **Authentication & Security Layer:** Tenant-aware authentication workflows (`LoginPage.tsx`, `RegisterPage.tsx`, `ForgotPasswordModal.tsx`) with session persistence and dynamic tenant database context switching.
 - **Public & Marketing Layer:** High-converting, educational Landing Page (`LandingPage.tsx`) showcasing the mathematical principles of Zero-Knowledge billing and multi-tenant database partitioning.
 - **Service Layer:** Modular TypeScript service adapters with simulated cryptographic hashing and asynchronous delays, structured for 1-to-1 replacement with live backend REST endpoints.
 - **State Architecture:** Tenant-isolated local and reactive state, ensuring no cross-tenant data leakage in the UI layer.
@@ -91,16 +92,32 @@ The application follows modular component-driven development:
 - **Seamless Public/Console Toggle:**
   - Added "Public Site" toggle in console `Navbar.tsx` and "Launch Console" CTAs across the Landing Page, allowing reviewers to evaluate both customer-facing marketing and authenticated admin consoles.
 
+### Day 6 (2026-11-18)
+- **Authentication Service Architecture:**
+  - `auth.service.ts`: Implemented tenant-aware authentication layer conforming to `POST /api/v1/auth/login` specifications, session token storage, tenant organization onboarding, and blind password recovery request handling.
+- **Tenant-Aware Login Interface:**
+  - `LoginPage.tsx`: Clean financial login view featuring work email validation, password visibility toggles, tenant organization selector (binding session to dynamic MongoDB partition), and single-click demo admin fast-fill credentials for evaluator testing.
+- **Organization Onboarding Registration Interface:**
+  - `RegisterPage.tsx`: Multi-step organization onboarding form with administrator contact details, organization legal name, subscription tier selection, live database partition name preview (`ledgerguard_tenant_<slug>`), and terms verification.
+- **Zero-Knowledge Password Recovery Modal:**
+  - `ForgotPasswordModal.tsx`: Accessible dialog requesting verified organization email and dispatching a cryptographic recovery token confirmation state.
+- **Session Lifecycle & Route Protection Integration:**
+  - Integrated full multi-view state machine in `App.tsx` supporting seamless transitions between `landing`, `login`, `register`, and `console`.
+  - Added active session termination via Logout button in `Navbar.tsx` which cleans session state and returns to the authenticated login view with toast feedback.
+
 ---
 
 ## 3. Component Reference Guide
 
 | Component | Path | Description & Props |
 |:---|:---|:---|
-| `LandingPage` | `src/pages/LandingPage.tsx` | Public marketing & architecture showcase: `onEnterConsole`. |
-| `DashboardLayout` | `src/layouts/DashboardLayout.tsx` | App shell: `activeTab`, `onTabChange`, `tenants`, `currentTenant`, `breadcrumbs`, `title`, `actions`, `onViewLandingPage`. |
+| `LoginPage` | `src/pages/auth/LoginPage.tsx` | Tenant-aware login: `onLoginSuccess`, `onNavigateRegister`, `onNavigateHome`. |
+| `RegisterPage` | `src/pages/auth/RegisterPage.tsx` | Organization onboarding: `onRegisterSuccess`, `onNavigateLogin`, `onNavigateHome`. |
+| `ForgotPasswordModal` | `src/pages/auth/ForgotPasswordModal.tsx` | Cryptographic recovery modal: `isOpen`, `onClose`. |
+| `LandingPage` | `src/pages/LandingPage.tsx` | Public marketing & showcase: `onEnterConsole`, `onNavigateLogin`, `onNavigateRegister`. |
+| `DashboardLayout` | `src/layouts/DashboardLayout.tsx` | App shell: `activeTab`, `onTabChange`, `tenants`, `currentTenant`, `breadcrumbs`, `title`, `actions`, `onViewLandingPage`, `onLogout`. |
 | `Breadcrumbs` | `src/components/layout/Breadcrumbs.tsx` | Path navigation: `items: BreadcrumbItem[]`, `onHomeClick`. |
-| `Navbar` | `src/components/layout/Navbar.tsx` | Top navigation with mobile hamburger trigger, interactive tenant switcher, ZK status, user profile, and landing page switch. |
+| `Navbar` | `src/components/layout/Navbar.tsx` | Top navigation with mobile hamburger trigger, interactive tenant switcher, ZK status, user profile, landing switch, and logout. |
 | `Sidebar` | `src/components/layout/Sidebar.tsx` | Responsive sidebar: `isMobileOpen`, `onCloseMobile`, `isCollapsed`, `onToggleCollapse`, notification badges. |
 | `Button` | `src/components/common/Button.tsx` | Variants: `primary`, `secondary`, `outline`, `ghost`, `danger`. Sizes: `sm`, `md`, `lg`. Supports `isLoading`. |
 | `Input` | `src/components/common/Input.tsx` | Standard input with `label`, `error`, `helperText`, `leftIcon`, `rightIcon`. Focus ring with financial slate tint. |

@@ -18,9 +18,15 @@ import { subscriptionService, type SubscriptionPlan } from '../services/subscrip
 
 export interface LandingPageProps {
   onEnterConsole: () => void;
+  onNavigateLogin?: () => void;
+  onNavigateRegister?: () => void;
 }
 
-export const LandingPage: React.FC<LandingPageProps> = ({ onEnterConsole }) => {
+export const LandingPage: React.FC<LandingPageProps> = ({
+  onEnterConsole,
+  onNavigateLogin,
+  onNavigateRegister,
+}) => {
   const { showToast } = useToast();
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [isAnnual, setIsAnnual] = useState(false);
@@ -72,22 +78,21 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterConsole }) => {
           <a href="#faq" className="hover:text-slate-900 transition-colors">Security FAQ</a>
         </nav>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
-            onClick={() => showToast('Documentation is available in the repository documentation/ folder.', 'info')}
-            className="hidden sm:inline-flex"
+            onClick={onNavigateLogin || onEnterConsole}
           >
-            Documentation
+            Sign In
           </Button>
           <Button
             variant="primary"
             size="sm"
             rightIcon={<ArrowRight className="w-3.5 h-3.5" />}
-            onClick={onEnterConsole}
+            onClick={onNavigateRegister || onEnterConsole}
           >
-            Launch Console
+            Register Org
           </Button>
         </div>
       </header>
@@ -370,8 +375,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterConsole }) => {
                       variant={plan.isPopular ? 'primary' : 'outline'}
                       className="w-full text-xs"
                       onClick={() => {
-                        showToast(`Selected ${plan.name} tier (${isAnnual ? 'annual' : 'monthly'}). Launching console...`, 'success');
-                        onEnterConsole();
+                        showToast(`Selected ${plan.name} tier (${isAnnual ? 'annual' : 'monthly'}). Launching registration...`, 'success');
+                        if (onNavigateRegister) onNavigateRegister();
+                        else onEnterConsole();
                       }}
                     >
                       Deploy {plan.name}

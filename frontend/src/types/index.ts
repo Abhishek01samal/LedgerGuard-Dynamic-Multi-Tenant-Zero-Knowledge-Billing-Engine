@@ -73,3 +73,18 @@ export interface DashboardMetrics {
   overdueInvoices: number;
   activeCustomers: number;
 }
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: 'admin' | 'billing_manager' | 'auditor';
+  tenantId: string;
+  tenantName: string;
+}
+
+export interface AuthSession {
+  token: string;
+  user: User;
+  expiresAt: string;
+}

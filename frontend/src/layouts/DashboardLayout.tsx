@@ -16,6 +16,7 @@ export interface DashboardLayoutProps {
   subtitle?: string;
   actions?: React.ReactNode;
   onViewLandingPage?: () => void;
+  onLogout?: () => void;
 }
 
 export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
@@ -30,6 +31,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   subtitle,
   actions,
   onViewLandingPage,
+  onLogout,
 }) => {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isDesktopCollapsed, setIsDesktopCollapsed] = useState(false);
@@ -43,6 +45,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
         onTenantChange={onTenantChange}
         onToggleMobileMenu={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
         onViewLandingPage={onViewLandingPage}
+        onLogout={onLogout}
       />
 
       <div className="flex flex-1">

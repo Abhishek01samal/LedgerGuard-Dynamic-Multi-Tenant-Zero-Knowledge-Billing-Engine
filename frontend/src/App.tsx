@@ -40,7 +40,10 @@ import { tenantService } from './services/tenant.service';
 import { subscriptionService, type SubscriptionPlan } from './services/subscription.service';
 import { transactionService } from './services/transaction.service';
 import { LandingPage } from './pages/LandingPage';
-import type { Invoice, Tenant, InvoiceStatus, Customer, Transaction } from './types';
+import { LoginPage } from './pages/auth/LoginPage';
+import { RegisterPage } from './pages/auth/RegisterPage';
+import { authService } from './services/auth.service';
+import type { Invoice, Tenant, InvoiceStatus, Customer, Transaction, AuthSession } from './types';
 import type { BreadcrumbItem } from './components/layout/Breadcrumbs';
 
 type SortField = 'invoiceNumber' | 'customerName' | 'total' | 'dueDate';
@@ -48,7 +51,8 @@ type SortOrder = 'asc' | 'desc';
 
 export function App() {
   const { showToast } = useToast();
-  const [viewMode, setViewMode] = useState<'console' | 'landing'>('console');
+  const [viewMode, setViewMode] = useState<'console' | 'landing' | 'login' | 'register'>('console');
+  const [, setSession] = useState<AuthSession | null>(() => authService.getCurrentSession());
   const [activeTab, setActiveTab] = useState('dashboard');
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [currentTenant, setCurrentTenant] = useState<Tenant | undefined>(undefined);
@@ -305,7 +309,41 @@ export function App() {
   };
 
   if (viewMode === 'landing') {
-    return <LandingPage onEnterConsole={() => setViewMode('console')} />;
+    return (
+      <LandingPage
+        onEnterConsole={() => setViewMode('console')}
+        onNavigateLogin={() => setViewMode('login')}
+        onNavigateRegister={() => setViewMode('register')}
+      />
+    );
+  }
+
+  if (viewMode === 'login') {
+    return (
+      <LoginPage
+        onLoginSuccess={(newSession) => {
+          setSession(newSession);
+          const t = tenants.find((item) => item.id === newSession.user.tenantId);
+          if (t) setCurrentTenant(t);
+          setViewMode('console');
+        }}
+        onNavigateRegister={() => setViewMode('register')}
+        onNavigateHome={() => setViewMode('landing')}
+      />
+    );
+  }
+
+  if (viewMode === 'register') {
+    return (
+      <RegisterPage
+        onRegisterSuccess={(newSession) => {
+          setSession(newSession);
+          setViewMode('console');
+        }}
+        onNavigateLogin={() => setViewMode('login')}
+        onNavigateHome={() => setViewMode('landing')}
+      />
+    );
   }
 
   return (
@@ -320,6 +358,12 @@ export function App() {
         showToast(`Active organization switched to ${t.name}`, 'info');
       }}
       onViewLandingPage={() => setViewMode('landing')}
+      onLogout={() => {
+        authService.logout();
+        setSession(null);
+        setViewMode('login');
+        showToast('Successfully signed out of console.', 'info');
+      }}
       breadcrumbs={getBreadcrumbs()}
       title={
         activeTab === 'customers'
@@ -908,7 +952,7 @@ export function App() {
           <Card
             title="28-Day Development Milestone Log"
             subtitle="Live progress tracked on GitHub branch 'shraddha'"
-            action={<Badge variant="success">Day 5 Complete</Badge>}
+            action={<Badge variant="success">Day 6 Complete</Badge>}
           >
             <div className="space-y-3">
               <div className="flex items-start gap-3 p-3 rounded-lg bg-emerald-50/50 border border-emerald-200">
@@ -977,6 +1021,20 @@ export function App() {
                   </div>
                   <p className="text-[11px] text-slate-600 mt-0.5">
                     Engineered high-converting public landing page, interactive pricing calculator with annual discounts, architecture comparison matrix, and technical security FAQ.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-emerald-50/50 border border-emerald-200">
+                <div className="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0 text-xs font-bold">
+                  ✓
+                </div>
+                <div>
+                  <div className="text-xs font-semibold text-slate-900">
+                    Day 6: Authentication & Organization Onboarding Interfaces (Nov 18, 2026)
+                  </div>
+                  <p className="text-[11px] text-slate-600 mt-0.5">
+                    Engineered tenant-aware login page, organization onboarding registration, zero-knowledge password recovery modal, and auth service session handling.
                   </p>
                 </div>
               </div>
