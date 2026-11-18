@@ -6,6 +6,7 @@ import { env } from './config/env';
 import { errorHandler, notFoundHandler } from './middleware/error.middleware';
 import authRoutes from './modules/auth/auth.routes';
 import healthRoutes from './modules/health/health.routes';
+import ledgerRoutes from './modules/ledger/ledger.routes';
 import tenantRoutes from './modules/tenants/tenant.routes';
 
 export function createApp(): Express {
@@ -20,9 +21,9 @@ export function createApp(): Express {
   app.use('/health', healthRoutes);
   app.use('/api/v1/auth', authRoutes);
   app.use('/api/v1/tenants', tenantRoutes);
+  app.use('/api/v1/ledger', ledgerRoutes);
 
   app.use(notFoundHandler);
   app.use(errorHandler);
   return app;
 }
-
