@@ -1,4 +1,5 @@
 import type { ClientSession } from 'mongoose';
+import type { FilterQuery } from 'mongoose';
 import { AppError } from '../../middleware/error.middleware';
 import { isDuplicateKeyError, runInTransaction } from '../transactions/transaction.service';
 import { getIdempotencyGuard } from './ledger.guard';
@@ -10,17 +11,21 @@ import {
   transactionInProgress,
 } from './ledger.errors';
 import {
+  escapeRegex,
   fromMinorUnits,
   generateTransactionId,
   hashPayload,
   normalizePayload,
   toCreateResponse,
+  toDetailView,
+  toTransactionView,
   type NormalizedPayload,
 } from './ledger.mapper';
 import { getLedgerModels, type LedgerModels } from './ledger.model';
 import type {
   CreateTransactionInput,
   CreateTransactionResponse,
+  Currency,
   IdempotencyGuard,
   LedgerSummary,
   LedgerTransactionDoc,
@@ -28,6 +33,7 @@ import type {
   PaginatedTransactions,
   TenantContext,
   TransactionDetailView,
+  TransactionStatus,
 } from './ledger.types';
 
 /** Test/demo seams. Never wired to user input in production. */
@@ -46,9 +52,6 @@ export interface CreateOutcome {
   transaction: CreateTransactionResponse;
   replayed: boolean;
 }
-
-const notImplemented = (what: string): AppError =>
-  new AppError(501, `${what} is not implemented yet`, 'NOT_IMPLEMENTED');
 
 export class LedgerService {
   constructor(private readonly options: LedgerServiceOptions = {}) {}
@@ -270,16 +273,68 @@ export class LedgerService {
       : new AppError(500, reason, 'TRANSACTION_FAILED', data);
   }
 
-  /* Day 4 */
-  listTransactions(_ctx: TenantContext, _query: ListTransactionsQuery): Promise<PaginatedTransactions> {
-    return Promise.reject(notImplemented('List transactions'));
+  /* ------------------------------------------------------------------ */
+  /* Reads. Every query is scoped by tenantId (on top of the tenant DB). */
+  /* ------------------------------------------------------------------ */
+  async listTransactions(ctx: TenantContext, query: ListTransactionsQuery): Promise<PaginatedTransactions> {
+    const { Transaction } = await this.models(ctx);
+
+    const filter: FilterQuery<LedgerTransactionDoc> = { tenantId: ctx.tenantId };
+    if (query.status) filter.status = query.status;
+    if (query.from || query.to) {
+      filter.createdAt = {
+        ...(query.from ? { $gte: query.from } : {}),
+        ...(query.to ? { $lte: query.to } : {}),
+      };
+    }
+    if (query.search) {
+      const pattern = new RegExp(escapeRegex(query.search), 'i');
+      filter.$or = [{ eventId: pattern }, { transactionId: pattern }, { description: pattern }];
+    }
+
+    const [docs, total] = await Promise.all([
+      Transaction.find(filter)
+        .sort({ createdAt: -1, _id: -1 })
+        .skip((query.page - 1) * query.limit)
+        .limit(query.limit)
+        .lean(),
+      Transaction.countDocuments(filter),
+    ]);
+
+    return {
+      transactions: docs.map(toTransactionView),
+      pagination: {
+        page: query.page,
+        limit: query.limit,
+        total,
+        totalPages: Math.ceil(total / query.limit),
+      },
+    };
   }
 
-  getTransaction(_ctx: TenantContext, _transactionId: string): Promise<TransactionDetailView> {
-    return Promise.reject(notImplemented('Get transaction'));
+  async getTransaction(ctx: TenantContext, transactionId: string): Promise<TransactionDetailView> {
+    const { Transaction, Entry } = await this.models(ctx);
+    const doc = await Transaction.findOne({ tenantId: ctx.tenantId, transactionId }).lean();
+    // Another tenant's id looks exactly like a missing one: never reveal existence.
+    if (!doc) throw new AppError(404, 'Transaction not found', 'TRANSACTION_NOT_FOUND');
+    const entries = await Entry.find({ tenantId: ctx.tenantId, transactionId }).sort({ _id: 1 }).lean();
+    return toDetailView(doc, entries);
   }
 
-  getSummary(_ctx: TenantContext, _currency: LedgerSummary['currency']): Promise<LedgerSummary> {
-    return Promise.reject(notImplemented('Ledger summary'));
+  async getSummary(ctx: TenantContext, currency: Currency): Promise<LedgerSummary> {
+    const { Transaction } = await this.models(ctx);
+    const rows = await Transaction.aggregate<{ _id: TransactionStatus; count: number; amountMinor: number }>([
+      { $match: { tenantId: ctx.tenantId, currency } },
+      { $group: { _id: '$status', count: { $sum: 1 }, amountMinor: { $sum: '$amountMinor' } } },
+    ]);
+    const by = new Map(rows.map((r) => [r._id, r]));
+    return {
+      totalTransactions: rows.reduce((n, r) => n + r.count, 0),
+      successfulTransactions: by.get('COMPLETED')?.count ?? 0,
+      failedTransactions: by.get('FAILED')?.count ?? 0,
+      // Only money that actually moved counts: COMPLETED transactions.
+      totalAmount: fromMinorUnits(by.get('COMPLETED')?.amountMinor ?? 0),
+      currency,
+    };
   }
 }
