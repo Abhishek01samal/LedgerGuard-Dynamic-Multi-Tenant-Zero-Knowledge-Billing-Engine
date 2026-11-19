@@ -17,6 +17,8 @@ const schema = z.object({
   COOKIE_NAME: z.string().default('lg_token'),
   FRONTEND_URL: z.string().url().default('http://localhost:5173'),
   SEED_USER_PASSWORD: z.string().min(8).default('password123'),
+  // Demo-only rollback trigger (ignored in production). See docs/ledger-integration.md.
+  LEDGER_DEMO_FAIL_ACCOUNT: z.string().trim().min(1).optional(),
 });
 
 const parsed = schema.safeParse(process.env);
@@ -50,4 +52,5 @@ export const env = {
   cookieName: raw.COOKIE_NAME,
   frontendUrl: raw.FRONTEND_URL,
   seedUserPassword: raw.SEED_USER_PASSWORD,
+  ledgerDemoFailAccount: raw.NODE_ENV === 'production' ? undefined : raw.LEDGER_DEMO_FAIL_ACCOUNT,
 } as const;
