@@ -72,6 +72,44 @@ export interface DashboardMetrics {
   pendingInvoices: number;
   overdueInvoices: number;
   activeCustomers: number;
+  collectedRevenue: number;
+  outstandingRevenue: number;
+  collectionRate: number;
+  zkProofCoverage: number;
+}
+
+export interface MonthlyRevenueData {
+  month: string;
+  invoiced: number;
+  collected: number;
+  proofsCount: number;
+}
+
+export type ActivityEventType =
+  | 'invoice_created'
+  | 'payment_settled'
+  | 'proof_verified'
+  | 'customer_added'
+  | 'tenant_sync';
+
+export interface ActivityEvent {
+  id: string;
+  type: ActivityEventType;
+  title: string;
+  description: string;
+  timestamp: string;
+  hash?: string;
+  status: 'success' | 'pending' | 'info';
+}
+
+export interface TenantPartitionHealth {
+  databaseName: string;
+  status: 'healthy' | 'degraded' | 'syncing';
+  latencyMs: number;
+  proofQuotaUsed: number;
+  proofQuotaTotal: number;
+  activeConnections: number;
+  lastSyncAt: string;
 }
 
 export interface User {

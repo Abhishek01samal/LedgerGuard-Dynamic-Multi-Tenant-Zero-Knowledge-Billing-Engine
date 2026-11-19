@@ -181,4 +181,8 @@ export const INITIAL_METRICS: DashboardMetrics = {
   pendingInvoices: 26,
   overdueInvoices: 8,
   activeCustomers: 42,
+  collectedRevenue: 124600,
+  outstandingRevenue: 18250,
+  collectionRate: 87.2,
+  zkProofCoverage: 100,
 };
