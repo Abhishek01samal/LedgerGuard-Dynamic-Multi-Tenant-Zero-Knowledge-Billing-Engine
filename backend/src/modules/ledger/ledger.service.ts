@@ -1,4 +1,5 @@
 import type { ClientSession } from 'mongoose';
+import { env } from '../../config/env';
 import type { FilterQuery } from 'mongoose';
 import { AppError } from '../../middleware/error.middleware';
 import { isDuplicateKeyError, runInTransaction } from '../transactions/transaction.service';
@@ -26,6 +27,7 @@ import type {
   CreateTransactionInput,
   CreateTransactionResponse,
   Currency,
+  EntryType,
   IdempotencyGuard,
   LedgerSummary,
   LedgerTransactionDoc,
@@ -39,13 +41,19 @@ import type {
 /** Test/demo seams. Never wired to user input in production. */
 export interface ProcessingHooks {
   /** Runs inside the DB transaction after both entries are written, before commit. */
-  afterEntriesWritten?: (payload: NormalizedPayload) => Promise<void> | void;
+  afterEntriesWritten?: (payload: NormalizedPayload, session: ClientSession) => Promise<void> | void;
 }
 
 export interface LedgerServiceOptions {
   /** Defaults to the registered guard (in-memory until Person 2 registers Redis). */
   guard?: IdempotencyGuard;
   hooks?: ProcessingHooks;
+  /**
+   * Demo only (mid-project review): a transaction whose creditAccount equals this value
+   * is written and then deliberately failed so the rollback can be shown live.
+   * Defaults to env.ledgerDemoFailAccount, which is always undefined in production.
+   */
+  demoFailAccount?: string | undefined;
 }
 
 export interface CreateOutcome {
@@ -205,8 +213,43 @@ export class LedgerService {
       { session, ordered: true },
     );
 
-    await this.options.hooks?.afterEntriesWritten?.(payload);
+    await this.options.hooks?.afterEntriesWritten?.(payload, session);
+    await this.assertBalanced(ctx, models, tx.transactionId, payload, session);
+
+    const demoFail = this.options.demoFailAccount ?? env.ledgerDemoFailAccount;
+    if (demoFail && payload.creditAccount === demoFail) {
+      throw new LedgerProcessingError('Simulated failure: the ledger write was rolled back', 'TRANSACTION_FAILED');
+    }
     return tx;
+  }
+
+  /**
+   * Double-entry invariant, checked INSIDE the transaction (so it sees our own
+   * uncommitted writes): exactly one DEBIT and one CREDIT, each equal to the
+   * transaction amount. Any violation throws, which aborts the transaction.
+   */
+  private async assertBalanced(
+    ctx: TenantContext,
+    models: LedgerModels,
+    transactionId: string,
+    payload: NormalizedPayload,
+    session: ClientSession,
+  ): Promise<void> {
+    const rows = await models.Entry.aggregate<{ _id: EntryType; count: number; amountMinor: number }>([
+      { $match: { tenantId: ctx.tenantId, transactionId } },
+      { $group: { _id: '$entryType', count: { $sum: 1 }, amountMinor: { $sum: '$amountMinor' } } },
+    ]).session(session);
+    const debit = rows.find((r) => r._id === 'DEBIT');
+    const credit = rows.find((r) => r._id === 'CREDIT');
+    const ok =
+      rows.length === 2 &&
+      debit?.count === 1 &&
+      credit?.count === 1 &&
+      debit.amountMinor === payload.amountMinor &&
+      credit.amountMinor === payload.amountMinor;
+    if (!ok) {
+      throw new LedgerProcessingError('Ledger entries are not balanced; transaction rolled back', 'LEDGER_IMBALANCE');
+    }
   }
 
   /**
