@@ -31,6 +31,12 @@ export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
     res.status(err.statusCode).json({ success: false, message: err.message, code: err.code });
     return;
   }
+  if (err instanceof SyntaxError && (err as { status?: number }).status === 400) {
+    res
+      .status(400)
+      .json({ success: false, message: 'Malformed JSON body', code: 'VALIDATION_ERROR' });
+    return;
+  }
   console.error('Unhandled error:', err);
   res.status(500).json({
     success: false,
@@ -39,4 +45,3 @@ export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
     ...(env.isProduction ? {} : { detail: err instanceof Error ? err.message : String(err) }),
   });
 };
-
