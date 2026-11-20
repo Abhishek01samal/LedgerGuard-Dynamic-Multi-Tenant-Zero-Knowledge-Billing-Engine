@@ -124,6 +124,22 @@ The application follows modular component-driven development:
 - **Aggregated Dashboard Service Layer:**
   - `dashboard.service.ts`: Centralized service calculating multi-tenant revenue metrics, historical distribution, ledger activity stream, and database partition health.
 
+### Day 8 (2026-11-20)
+- **Interactive Time Window & Period Filter Engine:**
+  - `DateRangeSelector.tsx`: Created customizable time window picker with presets (`Last 7 Days`, `Last 30 Days`, `Q4 2026`, `Year to Date (2026)`, and `Custom Range`) paired with period comparison toggles (`vs Previous Period` and `vs Previous Year (YoY)`).
+- **Cashflow & Status Breakdown Distribution:**
+  - `RevenueBreakdownWidget.tsx`: Multi-segment cashflow progress bar breaking down total invoicing into Settled & Verified (87.2%), Awaiting Settlement (9.9%), Past Due Date (2.8%), and Unposted Drafts (0%).
+  - Integrated interactive calculation switcher allowing instantaneous toggling between **Gross Billed Volume** and **Net Realized Revenue** (accounting for standard 8.5% blended corporate tax and platform settlement fees).
+  - Built an integrated **Receivables Aging Analysis matrix** breaking down current vs delinquent accounts across standard enterprise credit windows (`0-30 Days`, `31-60 Days`, `61-90 Days`, and `>90 Days Default Risk`).
+- **Settlement Rails & Channel Volume Distribution:**
+  - `PaymentMethodsDistribution.tsx`: Dedicated payment channels widget breaking down settlement volumes across Corporate ACH ($82.8k, 58%), Fedwire/SWIFT ($34.3k, 24%), and Commercial Cards ($25.7k, 18%) with zero-knowledge verified rails indicator.
+- **Zero-Knowledge Circuit & Prover Performance Metrics:**
+  - `ZkProofStatsWidget.tsx`: Advanced cryptographic statistics widget visualizing total SNARK proofs generated (348), average proving circuit latency (142ms via Groth16), verification success rate (99.98%), blinded Poseidon commitments, active prover cluster nodes (6 nodes), and SOC2 audit readiness.
+- **Executive Financial Audit Statement Modal:**
+  - `FinancialSummaryModal.tsx`: Comprehensive printable modal displaying audited accounting ledger, reconciliation metadata, Merkle state root commitment hashes, and one-click CSV statement download.
+- **Service Layer Expansion:**
+  - Expanded `dashboard.service.ts` with `getFinancialSummaryDetail()`, `getPaymentChannels()`, and `getZkComputationStats()`.
+
 ---
 
 ## 3. Component Reference Guide
@@ -131,6 +147,11 @@ The application follows modular component-driven development:
 | Component | Path | Description & Props |
 |:---|:---|:---|
 | `DashboardOverview` | `src/pages/dashboard/DashboardOverview.tsx` | Executive dashboard cockpit: `currentTenant`, `invoices`, `isLoadingInvoices`, `onRefreshData`, `onCreateInvoice`, `onAddCustomer`, `onNavigateTab`. |
+| `DateRangeSelector` | `src/components/dashboard/DateRangeSelector.tsx` | Time window picker: `currentFilter: DateRangeFilter`, `onFilterChange`. |
+| `RevenueBreakdownWidget` | `src/components/dashboard/RevenueBreakdownWidget.tsx` | Cashflow breakdown: `summary: FinancialSummaryDetail`, `isNetMode`, `onToggleMode`, `onViewSummaryModal`, `isLoading`. |
+| `PaymentMethodsDistribution` | `src/components/dashboard/PaymentMethodsDistribution.tsx` | Settlement rails: `channels: PaymentChannelMetric[]`, `isLoading`. |
+| `ZkProofStatsWidget` | `src/components/dashboard/ZkProofStatsWidget.tsx` | Cryptographic metrics: `stats: ZkComputationStats`, `isLoading`. |
+| `FinancialSummaryModal` | `src/components/dashboard/FinancialSummaryModal.tsx` | Audit statement dialog: `isOpen`, `onClose`, `summary`, `tenant`, `periodLabel`. |
 | `MetricCard` | `src/components/dashboard/MetricCard.tsx` | Reusable financial metric card: `title`, `value`, `delta`, `icon`, `iconBgColor`, `iconTextColor`, `badge`, `isLoading`. |
 | `RevenueChartWidget` | `src/components/dashboard/RevenueChartWidget.tsx` | SVG financial chart: `data: MonthlyRevenueData[]`, `timeframe`, `onTimeframeChange`, `isLoading`. |
 | `ActivityFeedWidget` | `src/components/dashboard/ActivityFeedWidget.tsx` | Real-time audit trail: `events: ActivityEvent[]`, `isLoading`. |

@@ -112,6 +112,59 @@ export interface TenantPartitionHealth {
   lastSyncAt: string;
 }
 
+export type DateRangePreset = '7d' | '30d' | 'q4' | 'ytd' | 'custom';
+
+export interface DateRangeFilter {
+  preset: DateRangePreset;
+  startDate: string;
+  endDate: string;
+  comparison: 'previous_period' | 'previous_year';
+}
+
+export interface StatusBreakdownItem {
+  status: InvoiceStatus;
+  label: string;
+  count: number;
+  amount: number;
+  percentage: number;
+  color: string;
+}
+
+export interface FinancialSummaryDetail {
+  grossVolume: number;
+  netRevenue: number;
+  taxAndFees: number;
+  collectedVolume: number;
+  pendingVolume: number;
+  overdueVolume: number;
+  collectionEfficiency: number;
+  statusBreakdown: StatusBreakdownItem[];
+  receivablesAging: {
+    current0To30: number;
+    days31To60: number;
+    days61To90: number;
+    over90Days: number;
+  };
+}
+
+export interface PaymentChannelMetric {
+  channel: 'ach' | 'wire' | 'card';
+  label: string;
+  volume: number;
+  txCount: number;
+  percentage: number;
+  zkProofVerifiedRate: number;
+}
+
+export interface ZkComputationStats {
+  totalProofsGenerated: number;
+  provingCircuitTimeMs: number;
+  verificationSuccessRate: number;
+  blindedCommitmentsCount: number;
+  activeProverNodes: number;
+  zeroKnowledgeAuditsPassed: number;
+}
+
 export interface User {
   id: string;
   name: string;
