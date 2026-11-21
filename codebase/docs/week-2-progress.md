@@ -78,6 +78,17 @@ Backend scripts Person 1 adds to `backend/package.json` (Person 4 does not edit 
 - [ ] Day 6: CI with Redis and MongoDB, documentation, final review
 - [ ] Day 7: demo script rehearsed, evidence pack complete
 
+## Pull requests
+
+| Person   | Branch                      | PR  | Reviewed by | CI  | Merged |
+| -------- | --------------------------- | --- | ----------- | --- | ------ |
+| Person 2 | `feature/redis-locking`     |     |             |     |        |
+| Person 1 | `feature/idempotent-ledger` |     |             |     |        |
+| Person 3 | `feature/billing-dashboard` |     |             |     |        |
+| Person 4 | `feature/week2-testing`     |     |             |     |        |
+
+Merge order: Person 2, Person 1, Person 3, Person 4, then the team lead merges `develop` to `main`.
+
 ## Daily log
 
 | Day | Person | Done | Next | Blockers |

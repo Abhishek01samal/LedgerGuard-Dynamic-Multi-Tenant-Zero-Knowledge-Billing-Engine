@@ -40,13 +40,20 @@ jobs:
         run: npm run format:check
 
   backend:
-    name: Backend (typecheck, lint, test, build)
+    name: Backend (typecheck, lint, tests with MongoDB + Redis, build)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: backend
     steps:
       - uses: actions/checkout@v4
+
+      # MongoDB (single-node replica set rs0, needed for transactions) and Redis.
+      - name: Start MongoDB replica set and Redis
+        working-directory: .
+        run: docker compose up -d --wait
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -58,10 +65,33 @@ jobs:
         run: npm run typecheck
       - name: Lint
         run: npm run lint
-      - name: Test
-        run: npm run test:ci
+      - name: Unit tests
+        run: npm run test:unit
+      - name: Integration tests (ledger, idempotency, transactions, concurrency)
+        run: npm run test:integration -- --json --outputFile=jest-integration.json
+        env:
+          TEST_MONGO_URI: mongodb://127.0.0.1:27017/ledgerguard_test_master?replicaSet=rs0
+          TEST_REDIS_URL: redis://127.0.0.1:6379/15
       - name: Build
         run: npm run build
+
+      - name: Upload test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-evidence
+          path: backend/jest-integration.json
+          if-no-files-found: ignore
+
+      - name: Show container logs on failure
+        if: failure()
+        working-directory: .
+        run: docker compose logs --no-color --tail=100
+
+      - name: Stop services
+        if: always()
+        working-directory: .
+        run: docker compose down -v
 
   frontend:
     name: Frontend (typecheck, lint, build)
@@ -93,4 +123,3 @@ jobs:
         run: npm run lint --if-present
       - if: steps.detect.outputs.present == 'true'
         run: npm run build
-

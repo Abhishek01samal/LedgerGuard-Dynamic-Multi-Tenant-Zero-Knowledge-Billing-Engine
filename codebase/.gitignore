@@ -2,12 +2,14 @@ node_modules/
 dist/
 build/
 coverage/
+jest-*.json
 
 .env
 .env.*
 !.env.example
 
 *.log
+docs/evidence-*.txt
 
 .DS_Store
 
@@ -18,7 +20,3 @@ backend/keys/*.key
 
 .vscode/
 .idea/
-
-# Confidential - never commit or push
-Updates for Weerk 2/
-
