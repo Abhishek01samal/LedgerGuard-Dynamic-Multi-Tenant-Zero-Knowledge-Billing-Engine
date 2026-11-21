@@ -140,12 +140,28 @@ The application follows modular component-driven development:
 - **Service Layer Expansion:**
   - Expanded `dashboard.service.ts` with `getFinancialSummaryDetail()`, `getPaymentChannels()`, and `getZkComputationStats()`.
 
+### Day 9 (2026-11-21)
+- **Dedicated Invoice Management Page & Cockpit:**
+  - `InvoicesPage.tsx`: Extracted and engineered standalone, enterprise-grade invoice management explorer with dedicated KPI metrics summary strip (Total Invoiced, Settled Collections, Pending Receivables, and Overdue at Risk).
+  - Built advanced multi-attribute filtering supporting real-time text search (invoice number, customer name, customer email), status filter pills (`All`, `Paid`, `Pending`, `Overdue`, `Draft`), and multi-currency dropdown filtering (`All`, `USD`, `EUR`, `GBP`).
+  - Added multi-column table sorting (`invoiceNumber`, `customerName`, `total`, `status`, `dueDate`) and paginated table navigation with configurable page size (8 per page).
+- **Itemized Invoice Statement & Cryptographic Detail Modal:**
+  - `InvoiceDetailModal.tsx`: Comprehensive slide-over preview modal rendering full invoice breakdown including customer identity, originating tenant partition, line items table (description, quantity, unit price, line amount), financial subtotal, tax calculation, and total.
+  - Zero-Knowledge cryptographic verification section with copyable proof hash, Groth16 / BN254 verification verification status, print statement trigger, and direct "Mark as Paid" action.
+- **Floating Batch Operations Bar:**
+  - `InvoiceBatchActionBar.tsx`: Floating action toolbar triggered upon row checkbox selection allowing bulk "Mark as Paid", batch CSV invoice export, and batch archival/deletion.
+- **Invoice Service Enhancements:**
+  - Expanded `invoice.service.ts` with `updateInvoiceStatus()`, `batchUpdateStatus()`, `getInvoiceById()`, `deleteInvoice()`, and `batchDelete()`.
+
 ---
 
 ## 3. Component Reference Guide
 
 | Component | Path | Description & Props |
 |:---|:---|:---|
+| `InvoicesPage` | `src/pages/invoices/InvoicesPage.tsx` | Dedicated invoice management explorer: `currentTenant`, `invoices`, `isLoading`, `onRefresh`, `onCreateInvoice`. |
+| `InvoiceDetailModal` | `src/components/invoices/InvoiceDetailModal.tsx` | Detailed invoice slip dialog: `invoice`, `isOpen`, `onClose`, `onMarkAsPaid`. |
+| `InvoiceBatchActionBar` | `src/components/invoices/InvoiceBatchActionBar.tsx` | Batch operations bar: `selectedCount`, `onBatchMarkPaid`, `onBatchExport`, `onBatchDelete`, `onDeselectAll`. |
 | `DashboardOverview` | `src/pages/dashboard/DashboardOverview.tsx` | Executive dashboard cockpit: `currentTenant`, `invoices`, `isLoadingInvoices`, `onRefreshData`, `onCreateInvoice`, `onAddCustomer`, `onNavigateTab`. |
 | `DateRangeSelector` | `src/components/dashboard/DateRangeSelector.tsx` | Time window picker: `currentFilter: DateRangeFilter`, `onFilterChange`. |
 | `RevenueBreakdownWidget` | `src/components/dashboard/RevenueBreakdownWidget.tsx` | Cashflow breakdown: `summary: FinancialSummaryDetail`, `isNetMode`, `onToggleMode`, `onViewSummaryModal`, `isLoading`. |

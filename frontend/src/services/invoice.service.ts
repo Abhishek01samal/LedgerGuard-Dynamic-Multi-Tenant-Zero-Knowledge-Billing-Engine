@@ -70,4 +70,56 @@ export const invoiceService = {
     invoicesStore = [newInvoice, ...invoicesStore];
     return newInvoice;
   },
+
+  /**
+   * Updates an invoice's status (e.g. marking as paid, overdue, etc.)
+   */
+  async updateInvoiceStatus(id: string, status: InvoiceStatus): Promise<Invoice> {
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    const invIndex = invoicesStore.findIndex((i) => i.id === id);
+    if (invIndex === -1) throw new Error('Invoice not found');
+
+    const updated = {
+      ...invoicesStore[invIndex],
+      status,
+      // If paid, ensure ZK proof is verified
+      zkProofStatus: (status === 'paid' ? 'verified' : invoicesStore[invIndex].zkProofStatus) as 'verified' | 'pending' | 'unverified',
+    };
+    invoicesStore[invIndex] = updated;
+    return updated;
+  },
+
+  /**
+   * Batch updates status across multiple invoices
+   */
+  async batchUpdateStatus(ids: string[], status: InvoiceStatus): Promise<void> {
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    invoicesStore = invoicesStore.map((inv) =>
+      ids.includes(inv.id) ? { ...inv, status, zkProofStatus: status === 'paid' ? 'verified' : inv.zkProofStatus } : inv
+    );
+  },
+
+  /**
+   * Retrieves single invoice by ID
+   */
+  async getInvoiceById(id: string): Promise<Invoice | null> {
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    return invoicesStore.find((i) => i.id === id) || null;
+  },
+
+  /**
+   * Deletes an invoice
+   */
+  async deleteInvoice(id: string): Promise<void> {
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    invoicesStore = invoicesStore.filter((i) => i.id !== id);
+  },
+
+  /**
+   * Batch deletes invoices
+   */
+  async batchDelete(ids: string[]): Promise<void> {
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    invoicesStore = invoicesStore.filter((i) => !ids.includes(i.id));
+  },
 };
