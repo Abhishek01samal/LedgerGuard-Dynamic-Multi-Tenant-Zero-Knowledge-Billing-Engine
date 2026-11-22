@@ -20,7 +20,6 @@ import {
   Search,
   Building,
   ShieldCheck,
-  Calendar,
   Mail,
   User,
   Phone,
@@ -39,6 +38,7 @@ import { LoginPage } from './pages/auth/LoginPage';
 import { RegisterPage } from './pages/auth/RegisterPage';
 import { DashboardOverview } from './pages/dashboard/DashboardOverview';
 import { InvoicesPage } from './pages/invoices/InvoicesPage';
+import { CreateInvoiceModal } from './components/invoices/CreateInvoiceModal';
 import { authService } from './services/auth.service';
 import type { Invoice, Tenant, Customer, Transaction, AuthSession } from './types';
 import type { BreadcrumbItem } from './components/layout/Breadcrumbs';
@@ -76,15 +76,6 @@ export function App() {
 
   // Invoice Modal State
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [isSubmittingInvoice, setIsSubmittingInvoice] = useState(false);
-  const [invoiceFormErrors, setInvoiceFormErrors] = useState<Record<string, string>>({});
-  const [invoiceFormData, setInvoiceFormData] = useState({
-    customerName: '',
-    customerEmail: '',
-    description: '',
-    amount: '',
-    dueDate: '',
-  });
 
   // Initial Load
   useEffect(() => {
@@ -128,57 +119,6 @@ export function App() {
     const start = (customerPage - 1) * customerPageSize;
     return customers.slice(start, start + customerPageSize);
   }, [customers, customerPage, customerPageSize]);
-
-  // Handle Invoice Form
-  const validateInvoiceForm = (): boolean => {
-    const errors: Record<string, string> = {};
-    if (!invoiceFormData.customerName.trim()) errors.customerName = 'Customer name is required';
-    if (!invoiceFormData.customerEmail.trim()) {
-      errors.customerEmail = 'Customer email is required';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(invoiceFormData.customerEmail)) {
-      errors.customerEmail = 'Enter a valid email address';
-    }
-    if (!invoiceFormData.description.trim()) errors.description = 'Description is required';
-    const amt = parseFloat(invoiceFormData.amount);
-    if (!invoiceFormData.amount || isNaN(amt) || amt <= 0) {
-      errors.amount = 'Please enter a valid positive amount';
-    }
-    if (!invoiceFormData.dueDate) errors.dueDate = 'Due date is required';
-
-    setInvoiceFormErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
-  const handleCreateInvoice = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateInvoiceForm() || !currentTenant) return;
-
-    setIsSubmittingInvoice(true);
-    try {
-      const newInv = await invoiceService.createInvoice(currentTenant.id, {
-        customerName: invoiceFormData.customerName,
-        customerEmail: invoiceFormData.customerEmail,
-        description: invoiceFormData.description,
-        amount: parseFloat(invoiceFormData.amount),
-        dueDate: invoiceFormData.dueDate,
-      });
-
-      setIsCreateModalOpen(false);
-      setInvoiceFormData({
-        customerName: '',
-        customerEmail: '',
-        description: '',
-        amount: '',
-        dueDate: '',
-      });
-      showToast(`Invoice ${newInv.invoiceNumber} created and cryptographic ZK proof registered!`, 'success');
-      loadInvoices();
-    } catch {
-      showToast('Failed to create invoice.', 'error');
-    } finally {
-      setIsSubmittingInvoice(false);
-    }
-  };
 
   // Handle Customer Form
   const validateCustomerForm = (): boolean => {
@@ -519,14 +459,7 @@ export function App() {
                       </td>
                       <td className="py-3.5 text-right">
                         <button
-                          onClick={() => {
-                            setInvoiceFormData((prev) => ({
-                              ...prev,
-                              customerName: cust.company,
-                              customerEmail: cust.email,
-                            }));
-                            setIsCreateModalOpen(true);
-                          }}
+                          onClick={() => setIsCreateModalOpen(true)}
                           className="text-slate-600 hover:text-slate-900 font-medium hover:underline text-[11px]"
                         >
                           New Invoice
@@ -755,7 +688,7 @@ export function App() {
           <Card
             title="28-Day Development Milestone Log"
             subtitle="Live progress tracked on GitHub branch 'shraddha'"
-            action={<Badge variant="success">Day 9 Complete</Badge>}
+            action={<Badge variant="success">Day 10 Complete</Badge>}
           >
             <div className="space-y-3">
               <div className="flex items-start gap-3 p-3 rounded-lg bg-emerald-50/50 border border-emerald-200">
@@ -883,6 +816,20 @@ export function App() {
                   </p>
                 </div>
               </div>
+
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-emerald-50/50 border border-emerald-200">
+                <div className="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0 text-xs font-bold">
+                  ✓
+                </div>
+                <div>
+                  <div className="text-xs font-semibold text-slate-900">
+                    Day 10: Multi-Line Invoice Creation Engine & Validation (Nov 22, 2026)
+                  </div>
+                  <p className="text-[11px] text-slate-600 mt-0.5">
+                    Engineered dynamic multi-line item builder with real-time quantity × price calculation, automated payment terms due date derivation, tenant customer auto-fill, sales tax and discount controls, inline field validation, and Groth16/BN254 commitment preview.
+                  </p>
+                </div>
+              </div>
             </div>
           </Card>
         </div>
@@ -921,106 +868,15 @@ export function App() {
         </div>
       </div>
 
-      {/* Invoice Creation Modal */}
-      <Modal
+      {/* Multi-Line Cryptographic Invoice Creation Engine */}
+      <CreateInvoiceModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
-        title="Create New Tenant Invoice"
-        subtitle={`Register an invoice for ${currentTenant?.name || 'Active Tenant'}`}
-        maxWidth="lg"
-        footer={
-          <>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsCreateModalOpen(false)}
-              disabled={isSubmittingInvoice}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={handleCreateInvoice}
-              isLoading={isSubmittingInvoice}
-            >
-              Issue Invoice & Blind Proof
-            </Button>
-          </>
-        }
-      >
-        <form onSubmit={handleCreateInvoice} className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Input
-              label="Customer Name"
-              name="customerName"
-              placeholder="e.g. Acme Corp"
-              value={invoiceFormData.customerName}
-              onChange={(e) => setInvoiceFormData((prev) => ({ ...prev, customerName: e.target.value }))}
-              error={invoiceFormErrors.customerName}
-              required
-              leftIcon={<User className="w-3.5 h-3.5" />}
-            />
-            <Input
-              label="Customer Email"
-              name="customerEmail"
-              type="email"
-              placeholder="billing@acme.com"
-              value={invoiceFormData.customerEmail}
-              onChange={(e) => setInvoiceFormData((prev) => ({ ...prev, customerEmail: e.target.value }))}
-              error={invoiceFormErrors.customerEmail}
-              required
-              leftIcon={<Mail className="w-3.5 h-3.5" />}
-            />
-          </div>
-
-          <Input
-            label="Line Item / Service Description"
-            name="description"
-            placeholder="e.g. Enterprise Cloud API Access - November"
-            value={invoiceFormData.description}
-            onChange={(e) => setInvoiceFormData((prev) => ({ ...prev, description: e.target.value }))}
-            error={invoiceFormErrors.description}
-            required
-            leftIcon={<FileText className="w-3.5 h-3.5" />}
-          />
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Input
-              label="Amount ($ USD)"
-              name="amount"
-              type="number"
-              step="0.01"
-              placeholder="0.00"
-              value={invoiceFormData.amount}
-              onChange={(e) => setInvoiceFormData((prev) => ({ ...prev, amount: e.target.value }))}
-              error={invoiceFormErrors.amount}
-              required
-              leftIcon={<DollarSign className="w-3.5 h-3.5" />}
-            />
-            <Input
-              label="Payment Due Date"
-              name="dueDate"
-              type="date"
-              value={invoiceFormData.dueDate}
-              onChange={(e) => setInvoiceFormData((prev) => ({ ...prev, dueDate: e.target.value }))}
-              error={invoiceFormErrors.dueDate}
-              required
-              leftIcon={<Calendar className="w-3.5 h-3.5" />}
-            />
-          </div>
-
-          <div className="p-3 rounded-lg bg-indigo-50/60 border border-indigo-200 text-indigo-900 text-xs flex items-start gap-2.5">
-            <ShieldCheck className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
-            <div>
-              <span className="font-semibold">Zero-Knowledge Privacy Commitment:</span>
-              <p className="text-[11px] text-indigo-700 mt-0.5">
-                Upon submission, a deterministic cryptographic proof hash will be computed, allowing external auditors to verify financial validity without disclosing line item specifics.
-              </p>
-            </div>
-          </div>
-        </form>
-      </Modal>
+        currentTenant={currentTenant}
+        onInvoiceCreated={() => {
+          loadInvoices();
+        }}
+      />
 
       {/* Add Customer Modal */}
       <Modal

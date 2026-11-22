@@ -7,9 +7,21 @@ let invoicesStore: Invoice[] = [...INITIAL_INVOICES];
 export interface CreateInvoiceDTO {
   customerName: string;
   customerEmail: string;
-  description: string;
-  amount: number;
+  customerId?: string;
+  description?: string;
+  amount?: number;
+  items?: Array<{
+    description: string;
+    quantity: number;
+    unitPrice: number;
+    amount: number;
+  }>;
+  subtotal?: number;
+  tax?: number;
+  total?: number;
+  currency?: string;
   dueDate: string;
+  notes?: string;
 }
 
 export const invoiceService = {
@@ -32,7 +44,7 @@ export const invoiceService = {
   },
 
   /**
-   * Generates a new invoice with initial ZK proof simulation.
+   * Generates a new invoice with initial ZK proof simulation and multi-line item calculations.
    */
   async createInvoice(tenantId: string, dto: CreateInvoiceDTO): Promise<Invoice> {
     await new Promise((resolve) => setTimeout(resolve, 200));
@@ -40,26 +52,43 @@ export const invoiceService = {
     const invoiceCount = invoicesStore.length + 1;
     const invoiceNumber = `INV-2026-00${invoiceCount}`;
 
+    // Normalize line items
+    const lineItems =
+      dto.items && dto.items.length > 0
+        ? dto.items.map((item, idx) => ({
+            id: `item-${idx}-${Date.now()}`,
+            description: item.description,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            amount: item.amount,
+          }))
+        : [
+            {
+              id: `item-${Date.now()}`,
+              description: dto.description || 'Professional Billing Services',
+              quantity: 1,
+              unitPrice: dto.amount || 0,
+              amount: dto.amount || 0,
+            },
+          ];
+
+    const computedSubtotal =
+      dto.subtotal ?? lineItems.reduce((acc, item) => acc + item.amount, 0);
+    const computedTax = dto.tax ?? Math.round(computedSubtotal * 0.085);
+    const computedTotal = dto.total ?? computedSubtotal + computedTax;
+
     const newInvoice: Invoice = {
       id: invoiceNumber,
       invoiceNumber,
       tenantId,
-      customerId: `cust-${Date.now().toString().slice(-4)}`,
+      customerId: dto.customerId || `cust-${Date.now().toString().slice(-4)}`,
       customerName: dto.customerName,
       customerEmail: dto.customerEmail,
-      items: [
-        {
-          id: `item-${Date.now()}`,
-          description: dto.description,
-          quantity: 1,
-          unitPrice: dto.amount,
-          amount: dto.amount,
-        },
-      ],
-      subtotal: dto.amount,
-      tax: 0,
-      total: dto.amount,
-      currency: 'USD',
+      items: lineItems,
+      subtotal: computedSubtotal,
+      tax: computedTax,
+      total: computedTotal,
+      currency: dto.currency || 'USD',
       status: 'pending',
       zkProofStatus: 'verified',
       zkProofHash: `0x${Array.from({ length: 40 }, () => Math.floor(Math.random() * 16).toString(16)).join('')}`,

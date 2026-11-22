@@ -19,8 +19,8 @@
 | **Day 6** | 2026-11-18 | Tenant-aware login interface (`LoginPage.tsx`) with fast demo credentials, organization registration onboarding (`RegisterPage.tsx`) with dynamic DB partition preview, cryptographic password recovery modal (`ForgotPasswordModal.tsx`), `auth.service.ts` session management, and console logout integration. | `32d7d77` | Pushed to `origin/shraddha` | Pre-commit build verified (`tsc -b && vite build` built clean in 1.01s with 0 errors). |
 | **Day 7** | 2026-11-19 | Executive dashboard architecture (`DashboardOverview.tsx`), reusable `MetricCard.tsx` with delta trends, interactive SVG `RevenueChartWidget.tsx` (billed vs settled volume), real-time `ActivityFeedWidget.tsx` with cryptographic audit trails, `TenantHealthWidget.tsx` for MongoDB partition isolation, `QuickActionsWidget.tsx`, and `dashboard.service.ts`. | `0ecc868` | Pushed to `origin/shraddha` | Pre-commit build verified (`tsc -b && vite build` built clean in 1.04s with 0 errors). |
 | **Day 8** | 2026-11-20 | Date range filter (`DateRangeSelector.tsx`) with YoY comparison, gross vs net revenue toggle (`RevenueBreakdownWidget.tsx`), cashflow status split, receivables aging buckets, settlement rails distribution (`PaymentMethodsDistribution.tsx`), ZK circuit metrics (`ZkProofStatsWidget.tsx`), and printable audit statement modal (`FinancialSummaryModal.tsx`). | `2379e9d` | Pushed to `origin/shraddha` | Pre-commit build verified (`tsc -b && vite build` built clean in 1.29s with 0 errors). |
-| **Day 9** | 2026-11-21 | Dedicated invoice management page (`InvoicesPage.tsx`), itemized invoice statement modal (`InvoiceDetailModal.tsx`), floating batch action bar (`InvoiceBatchActionBar.tsx`) with mark-as-paid, CSV export, and deletion, KPI metrics strip, status and currency filters, multi-column sorting, and service enhancements (`updateInvoiceStatus`, `batchUpdateStatus`, `batchDelete`). | `dd83a2a` | Pushed to `origin/shraddha` | Pre-commit build verified (`tsc -b && vite build` built clean in 985ms with 0 errors). |
-| Day 10 | - | *Scheduled: Invoice creation form, line item builder, client-side validation* | - | - | - |
+| **Day 9** | 2026-11-21 | Dedicated invoice management page (`InvoicesPage.tsx`), itemized invoice statement modal (`InvoiceDetailModal.tsx`), floating batch action bar (`InvoiceBatchActionBar.tsx`) with mark-as-paid, CSV export, and deletion, KPI metrics strip, status and currency filters, multi-column sorting, and service enhancements (`updateInvoiceStatus`, `batchUpdateStatus`, `batchDelete`). | `aeee261` | Pushed to `origin/shraddha` | Pre-commit build verified (`tsc -b && vite build` built clean in 985ms with 0 errors). |
+| **Day 10** | 2026-11-22 | Multi-line-item invoice creation modal (`CreateInvoiceModal.tsx`), dynamic line item builder (add/remove rows, quantity × unit price auto-calculation), customer auto-fill from directory, automated payment terms due date calculation, tax & discount controls, ZK-SNARK commitment preview, and robust validation. | `8ac1be2` | Pushed to `origin/shraddha` | Pre-commit build verified (`tsc -b && vite build` built clean in 1.00s with 0 errors). |
 | Day 11 | - | *Scheduled: Customer directory, detail drawers, status management* | - | - | - |
 | Day 12 | - | *Scheduled: Transaction history, payment status badges, audit logs* | - | - | - |
 | Day 13 | - | *Scheduled: Subscription plans, billing cycle switcher, upgrade flow* | - | - | - |
@@ -43,6 +43,6 @@
 ---
 
 ## Contribution Summary
-- **Current Distinct Contribution Days:** 9 / 20
-- **Total Project Days Elapsed:** 9 / 28
+- **Current Distinct Contribution Days:** 10 / 20
+- **Total Project Days Elapsed:** 10 / 28
 - **Active Branch:** `shraddha`

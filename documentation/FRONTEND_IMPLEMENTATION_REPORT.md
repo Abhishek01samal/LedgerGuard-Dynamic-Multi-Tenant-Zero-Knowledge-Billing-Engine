@@ -153,12 +153,25 @@ The application follows modular component-driven development:
 - **Invoice Service Enhancements:**
   - Expanded `invoice.service.ts` with `updateInvoiceStatus()`, `batchUpdateStatus()`, `getInvoiceById()`, `deleteInvoice()`, and `batchDelete()`.
 
+### Day 10 (2026-11-22)
+- **Multi-Line-Item Invoice Creation Engine & Dialog:**
+  - `CreateInvoiceModal.tsx`: Built enterprise multi-line invoice builder supporting dynamic item row additions and removals, with live client-side validation ensuring at least one valid line item.
+  - Real-time arithmetic engine computing line total (`quantity × unit price`), invoice subtotal, customizable sales tax rates (`0% Exempt`, `5%`, `8.5% Standard`, `10%`, `18% VAT/GST`), and percentage discounts.
+- **Automated Directory Auto-Fill & Terms Calculation:**
+  - Integrated tenant customer directory auto-fill: Selecting an active customer automatically populates the company name, billing email, and tenant customer ID with manual fallback for new clients.
+  - Automated payment terms calculator: Selecting presets (`Net 15`, `Net 30`, `Net 60`, `Due on Receipt`, `Custom`) automatically computes and validates the due date relative to the invoice issue date.
+- **Cryptographic ZK Proof Commitment Preview:**
+  - Integrated zero-knowledge privacy commitment preview under the Groth16 / BN254 schema demonstrating to reviewers that underlying service line item rates are mathematically blinded prior to state commitment.
+- **Service & DTO Modernization:**
+  - Updated `CreateInvoiceDTO` in `invoice.service.ts` to support nested `items` array, tax, discount, notes, and currency with backward compatibility for single-item payloads.
+
 ---
 
 ## 3. Component Reference Guide
 
 | Component | Path | Description & Props |
 |:---|:---|:---|
+| `CreateInvoiceModal` | `src/components/invoices/CreateInvoiceModal.tsx` | Multi-line invoice builder dialog: `isOpen`, `onClose`, `currentTenant`, `onInvoiceCreated`. |
 | `InvoicesPage` | `src/pages/invoices/InvoicesPage.tsx` | Dedicated invoice management explorer: `currentTenant`, `invoices`, `isLoading`, `onRefresh`, `onCreateInvoice`. |
 | `InvoiceDetailModal` | `src/components/invoices/InvoiceDetailModal.tsx` | Detailed invoice slip dialog: `invoice`, `isOpen`, `onClose`, `onMarkAsPaid`. |
 | `InvoiceBatchActionBar` | `src/components/invoices/InvoiceBatchActionBar.tsx` | Batch operations bar: `selectedCount`, `onBatchMarkPaid`, `onBatchExport`, `onBatchDelete`, `onDeselectAll`. |
