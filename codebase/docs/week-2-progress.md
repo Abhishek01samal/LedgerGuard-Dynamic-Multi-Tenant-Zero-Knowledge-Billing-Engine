@@ -76,7 +76,7 @@ Backend scripts Person 1 adds to `backend/package.json` (Person 4 does not edit 
 - [ ] Day 4: end-to-end ledger API tests, response contracts validated, PRs reviewed
 - [ ] Day 5: concurrency suite, tenant isolation, error handling, test evidence
 - [ ] Day 6: CI with Redis and MongoDB, documentation, final review
-- [ ] Day 7: demo script rehearsed, evidence pack complete
+- [ ] Day 7: demo script rehearsed, evidence pack complete (see Mid-project review)
 
 ## Pull requests
 
@@ -88,6 +88,48 @@ Backend scripts Person 1 adds to `backend/package.json` (Person 4 does not edit 
 | Person 4 | `feature/week2-testing`     |     |             |     |        |
 
 Merge order: Person 2, Person 1, Person 3, Person 4, then the team lead merges `develop` to `main`.
+
+## Mid-project review (end of Week 2)
+
+### Backend: isolation audit
+
+- [ ] Code review notes showing database isolation between tenants (PR comments linked)
+- [ ] Mock trace tests: fast database switching under load (`[isolation-trace]` lines from
+      `concurrency.test.ts`, screenshot attached)
+- [ ] Company A writes change only Company A (`ledger.test.ts`)
+- [ ] Company B writes change only Company B (`ledger.test.ts`)
+
+### Frontend: state resiliency
+
+- [ ] UI shows the rolled-back / failed transaction state (failure toast + `FAILED` badge)
+- [ ] UI shows success state after a completed transaction
+- [ ] Retrying a failed request reuses the same idempotency key (no new key)
+
+### Demo script (7 steps, about 8 minutes)
+
+| Step | Action                                                       | Expected result                                 |
+| ---- | ------------------------------------------------------------ | ----------------------------------------------- |
+| 1    | Company A creates a transaction                              | 201, appears in A's ledger only                 |
+| 2    | Company B creates a transaction                              | 201, appears in B's ledger only                 |
+| 3    | Re-send the same event (same key, same body)                 | 200 + `Idempotent-Replayed: true`, no new entry |
+| 4    | Re-send the same key with a different amount                 | 409 `IDEMPOTENCY_CONFLICT`                      |
+| 5    | Fire 10 identical requests at once                           | One 201, others replay or 409, one entry        |
+| 6    | Force a commit failure (`transaction.test.ts`)               | 500, nothing committed, failure toast in the UI |
+| 7    | Show the React ledger: list, details, filters, notifications | Matches the backend records                     |
+
+### Evidence pack
+
+- [ ] GitHub repository link
+- [ ] Architecture diagram (`docs/architecture.md`)
+- [ ] Screenshot: `docker ps` with MongoDB and Redis running
+- [ ] Postman requests and responses for the four ledger endpoints plus a duplicate and a 409
+- [ ] Jest integration results (CI artifact `backend-test-evidence` or `docs/evidence-jest.txt`)
+- [ ] Database records showing duplicate prevention (one document for the replayed `eventId`)
+- [ ] Frontend ledger screenshots (table, details, success and failure notifications)
+- [ ] Short demonstration video
+
+Do not start Week 3 work before the review. The ledger already stores `createdAt`, `amount`,
+`currency` and `status`, which the Week 3 aggregations will read.
 
 ## Daily log
 
