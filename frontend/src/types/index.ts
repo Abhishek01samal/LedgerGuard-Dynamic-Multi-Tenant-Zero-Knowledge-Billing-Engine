@@ -46,6 +46,8 @@ export interface Customer {
   company: string;
   email: string;
   phone?: string;
+  address?: string;
+  notes?: string;
   totalBilled: number;
   status: 'active' | 'inactive';
   createdAt: string;

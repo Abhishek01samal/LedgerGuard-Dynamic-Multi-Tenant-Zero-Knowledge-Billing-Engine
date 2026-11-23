@@ -165,12 +165,29 @@ The application follows modular component-driven development:
 - **Service & DTO Modernization:**
   - Updated `CreateInvoiceDTO` in `invoice.service.ts` to support nested `items` array, tax, discount, notes, and currency with backward compatibility for single-item payloads.
 
+### Day 11 (2026-11-23)
+- **Dedicated Enterprise Customer Management Page:**
+  - `CustomersPage.tsx`: Built standalone customer directory and accounts management view with tenant isolation indicators, real-time client search (company, contact, email, phone), active/inactive status filter tabs, and multi-column sorting (company, contact name, total invoiced, status).
+  - Top KPI Metrics Strip: Displays Total Clients, Active Accounts, Inactive Accounts, and Cumulative Lifetime Volume with clean financial styling.
+  - CSV Export: Built client-side CSV directory export utility generating RFC-4180 compliant CSV files with organization-specific filename and complete client records.
+- **Customer Profile Slide-Over Drawer:**
+  - `CustomerDetailDrawer.tsx`: Created slide-over client profile dialog displaying enterprise client identity, partitioned tenant ID, registration date, cumulative billed amount, payment status breakdown (paid, pending, ZK sealed proofs), primary contact card, and itemized invoice history table with live status badges.
+  - Provides quick action buttons to issue a new invoice to this specific client and toggle account status between active and inactive with optimistic UI toast feedback.
+- **Dedicated Add Customer Dialog Modal:**
+  - `AddCustomerModal.tsx`: Extracted and modernized customer creation modal with complete client-side validation (company, contact person name, email regex, optional phone and jurisdiction address), isolated under the active tenant's MongoDB partition.
+- **Customer Service & Data Model Enhancements:**
+  - Expanded `customer.service.ts` with `getCustomerById()`, `getCustomerInvoices()`, `updateCustomerStatus()`, and `deleteCustomer()`.
+  - Enriched `Customer` type in `types/index.ts` with `address` and `notes`.
+
 ---
 
 ## 3. Component Reference Guide
 
 | Component | Path | Description & Props |
 |:---|:---|:---|
+| `CustomersPage` | `src/pages/customers/CustomersPage.tsx` | Dedicated customer management directory: `currentTenant`, `customers`, `isLoading`, `onRefresh`, `onIssueInvoice`. |
+| `CustomerDetailDrawer` | `src/components/customers/CustomerDetailDrawer.tsx` | Slide-over client profile drawer: `customer`, `isOpen`, `onClose`, `onIssueInvoice`, `onStatusChanged`. |
+| `AddCustomerModal` | `src/components/customers/AddCustomerModal.tsx` | Customer registration dialog: `isOpen`, `onClose`, `currentTenant`, `onCustomerCreated`. |
 | `CreateInvoiceModal` | `src/components/invoices/CreateInvoiceModal.tsx` | Multi-line invoice builder dialog: `isOpen`, `onClose`, `currentTenant`, `onInvoiceCreated`. |
 | `InvoicesPage` | `src/pages/invoices/InvoicesPage.tsx` | Dedicated invoice management explorer: `currentTenant`, `invoices`, `isLoading`, `onRefresh`, `onCreateInvoice`. |
 | `InvoiceDetailModal` | `src/components/invoices/InvoiceDetailModal.tsx` | Detailed invoice slip dialog: `invoice`, `isOpen`, `onClose`, `onMarkAsPaid`. |
