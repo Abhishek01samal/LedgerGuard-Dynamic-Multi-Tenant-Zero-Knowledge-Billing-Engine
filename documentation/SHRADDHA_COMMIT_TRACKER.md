@@ -21,8 +21,8 @@
 | **Day 8** | 2026-11-20 | Date range filter (`DateRangeSelector.tsx`) with YoY comparison, gross vs net revenue toggle (`RevenueBreakdownWidget.tsx`), cashflow status split, receivables aging buckets, settlement rails distribution (`PaymentMethodsDistribution.tsx`), ZK circuit metrics (`ZkProofStatsWidget.tsx`), and printable audit statement modal (`FinancialSummaryModal.tsx`). | `2379e9d` | Pushed to `origin/shraddha` | Pre-commit build verified (`tsc -b && vite build` built clean in 1.29s with 0 errors). |
 | **Day 9** | 2026-11-21 | Dedicated invoice management page (`InvoicesPage.tsx`), itemized invoice statement modal (`InvoiceDetailModal.tsx`), floating batch action bar (`InvoiceBatchActionBar.tsx`) with mark-as-paid, CSV export, and deletion, KPI metrics strip, status and currency filters, multi-column sorting, and service enhancements (`updateInvoiceStatus`, `batchUpdateStatus`, `batchDelete`). | `aeee261` | Pushed to `origin/shraddha` | Pre-commit build verified (`tsc -b && vite build` built clean in 985ms with 0 errors). |
 | **Day 10** | 2026-11-22 | Multi-line-item invoice creation modal (`CreateInvoiceModal.tsx`), dynamic line item builder (add/remove rows, quantity × unit price auto-calculation), customer auto-fill from directory, automated payment terms due date calculation, tax & discount controls, ZK-SNARK commitment preview, and robust validation. | `f1fc30f` | Pushed to `origin/shraddha` | Pre-commit build verified (`tsc -b && vite build` built clean in 1.00s with 0 errors). |
-| **Day 11** | 2026-11-23 | Enterprise customer management page (`CustomersPage.tsx`), top KPI summary cards (total clients, active, inactive, lifetime volume), real-time search & status filtering, CSV directory export, slide-over `CustomerDetailDrawer.tsx` with itemized invoice history and ZK seal indicators, `AddCustomerModal.tsx` dialog, and account status toggles. | `4cc2483` | Pushed to `origin/shraddha` | Pre-commit build verified (`tsc -b && vite build` built clean in 1.66s with 0 errors). |
-| Day 12 | - | *Scheduled: Transaction history, payment status badges, audit logs* | - | - | - |
+| **Day 11** | 2026-11-23 | Enterprise customer management page (`CustomersPage.tsx`), top KPI summary cards (total clients, active, inactive, lifetime volume), real-time search & status filtering, CSV directory export, slide-over `CustomerDetailDrawer.tsx` with itemized invoice history and ZK seal indicators, `AddCustomerModal.tsx` dialog, and account status toggles. | `56c35ca` | Pushed to `origin/shraddha` | Pre-commit build verified (`tsc -b && vite build` built clean in 1.66s with 0 errors). |
+| **Day 12** | 2026-11-24 | Immutable Zero-Knowledge ledger page (`TransactionsPage.tsx`), settlement rail filter (Wire, ACH, Card, SEPA, USDC), cryptographic verification runner, settlement receipt dialog (`TransactionDetailModal.tsx`) with copyable proof commitment, and CSV ledger export. | `f8952b6` | Pushed to `origin/shraddha` | Pre-commit build verified (`tsc -b && vite build` built clean in 2.20s with 0 errors). |
 | Day 13 | - | *Scheduled: Subscription plans, billing cycle switcher, upgrade flow* | - | - | - |
 | Day 14 | - | *Scheduled: Universal search, date filtering, column sorting* | - | - | - |
 | Day 15 | - | *Scheduled: Multi-tenant organization switcher & isolation UI* | - | - | - |
@@ -43,6 +43,6 @@
 ---
 
 ## Contribution Summary
-- **Current Distinct Contribution Days:** 11 / 20
-- **Total Project Days Elapsed:** 11 / 28
+- **Current Distinct Contribution Days:** 12 / 20
+- **Total Project Days Elapsed:** 12 / 28
 - **Active Branch:** `shraddha`

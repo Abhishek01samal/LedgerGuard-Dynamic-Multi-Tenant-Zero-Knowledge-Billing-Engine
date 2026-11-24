@@ -32,6 +32,7 @@ import { RegisterPage } from './pages/auth/RegisterPage';
 import { DashboardOverview } from './pages/dashboard/DashboardOverview';
 import { InvoicesPage } from './pages/invoices/InvoicesPage';
 import { CustomersPage } from './pages/customers/CustomersPage';
+import { TransactionsPage } from './pages/transactions/TransactionsPage';
 import { CreateInvoiceModal } from './components/invoices/CreateInvoiceModal';
 import { AddCustomerModal } from './components/customers/AddCustomerModal';
 import { authService } from './services/auth.service';
@@ -58,6 +59,7 @@ export function App() {
   // Subscriptions & Transactions State
   const [subscriptionPlans, setSubscriptionPlans] = useState<SubscriptionPlan[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [isLoadingTransactions, setIsLoadingTransactions] = useState(false);
 
   // Invoice Modal State
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -97,9 +99,20 @@ export function App() {
     }
   };
 
+  const loadTransactions = async (tenantId?: string) => {
+    setIsLoadingTransactions(true);
+    try {
+      const data = await transactionService.getTransactions(tenantId);
+      setTransactions(data);
+    } finally {
+      setIsLoadingTransactions(false);
+    }
+  };
+
   useEffect(() => {
     if (currentTenant) {
       loadCustomers(currentTenant.id);
+      loadTransactions(currentTenant.id);
     }
   }, [currentTenant]);
 
@@ -222,10 +235,13 @@ export function App() {
           <Button
             variant="outline"
             size="sm"
-            leftIcon={<RefreshCw className={`w-3.5 h-3.5 ${isLoadingInvoices ? 'animate-spin' : ''}`} />}
+            leftIcon={<RefreshCw className={`w-3.5 h-3.5 ${isLoadingInvoices || isLoadingTransactions ? 'animate-spin' : ''}`} />}
             onClick={() => {
               loadInvoices();
-              if (currentTenant) loadCustomers(currentTenant.id);
+              if (currentTenant) {
+                loadCustomers(currentTenant.id);
+                loadTransactions(currentTenant.id);
+              }
               showToast('Data synced successfully.', 'info');
             }}
           >
@@ -261,7 +277,10 @@ export function App() {
           isLoadingInvoices={isLoadingInvoices}
           onRefreshData={() => {
             loadInvoices();
-            if (currentTenant) loadCustomers(currentTenant.id);
+            if (currentTenant) {
+              loadCustomers(currentTenant.id);
+              loadTransactions(currentTenant.id);
+            }
             showToast('Data synced successfully.', 'info');
           }}
           onCreateInvoice={() => setIsCreateModalOpen(true)}
@@ -285,6 +304,15 @@ export function App() {
             if (currentTenant) loadCustomers(currentTenant.id);
           }}
           onIssueInvoice={() => setIsCreateModalOpen(true)}
+        />
+      ) : activeTab === 'transactions' ? (
+        <TransactionsPage
+          currentTenant={currentTenant}
+          transactions={transactions}
+          isLoading={isLoadingTransactions}
+          onRefresh={() => {
+            if (currentTenant) loadTransactions(currentTenant.id);
+          }}
         />
       ) : (
         <>
@@ -424,45 +452,6 @@ export function App() {
             </div>
           </Card>
         </div>
-      ) : activeTab === 'transactions' ? (
-        /* Transactions & ZK Ledger View */
-        <Card
-          title="Immutable Zero-Knowledge Ledger"
-          subtitle="Cryptographically sealed settlement transactions with blind verification proof hashes"
-        >
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead>
-                <tr className="border-b border-slate-200 text-slate-400 font-semibold uppercase tracking-wider text-[10px]">
-                  <th className="pb-3">Transaction ID</th>
-                  <th className="pb-3">Invoice Ref</th>
-                  <th className="pb-3">Customer</th>
-                  <th className="pb-3">Amount</th>
-                  <th className="pb-3">Payment Method</th>
-                  <th className="pb-3">Proof Status</th>
-                  <th className="pb-3">Timestamp</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-slate-700">
-                {transactions.map((tx) => (
-                  <tr key={tx.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="py-3.5 font-mono font-medium text-slate-900">{tx.id}</td>
-                    <td className="py-3.5 font-mono text-slate-600">{tx.invoiceId}</td>
-                    <td className="py-3.5 font-medium text-slate-800">{tx.customerName}</td>
-                    <td className="py-3.5 font-semibold text-slate-900">{formatCurrency(tx.amount)}</td>
-                    <td className="py-3.5 text-slate-600">{tx.paymentMethod}</td>
-                    <td className="py-3.5">
-                      <Badge variant="zk" size="sm" icon={<ShieldCheck className="w-3 h-3 text-indigo-600" />}>
-                        ZK Verified
-                      </Badge>
-                    </td>
-                    <td className="py-3.5 text-slate-500 font-mono text-[11px]">{new Date(tx.timestamp).toLocaleString()}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
       ) : activeTab === 'tenants' ? (
         /* Multi-Tenant Organizations View */
         <Card
@@ -571,7 +560,7 @@ export function App() {
           <Card
             title="28-Day Development Milestone Log"
             subtitle="Live progress tracked on GitHub branch 'shraddha'"
-            action={<Badge variant="success">Day 11 Complete</Badge>}
+            action={<Badge variant="success">Day 12 Complete</Badge>}
           >
             <div className="space-y-3">
               <div className="flex items-start gap-3 p-3 rounded-lg bg-emerald-50/50 border border-emerald-200">
@@ -724,6 +713,20 @@ export function App() {
                   </div>
                   <p className="text-[11px] text-slate-600 mt-0.5">
                     Engineered standalone CustomersPage with KPI metrics strip, real-time search & status filtering, CSV export, slide-over CustomerDetailDrawer with billing history, AddCustomerModal dialog, and account status toggles.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-emerald-50/50 border border-emerald-200">
+                <div className="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0 text-xs font-bold">
+                  ✓
+                </div>
+                <div>
+                  <div className="text-xs font-semibold text-slate-900">
+                    Day 12: Immutable Zero-Knowledge Ledger & Settlement Inspector (Nov 24, 2026)
+                  </div>
+                  <p className="text-[11px] text-slate-600 mt-0.5">
+                    Engineered standalone TransactionsPage with settlement rail filtering, live ZK-SNARK verification runner (Groth16/BN254), TransactionDetailModal receipt generator with copyable proof commitments, and CSV ledger export.
                   </p>
                 </div>
               </div>

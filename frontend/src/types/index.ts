@@ -61,8 +61,14 @@ export interface Transaction {
   amount: number;
   currency: string;
   paymentMethod: string;
+  settlementRail?: 'ach' | 'wire' | 'card' | 'crypto' | 'sepa';
   status: 'succeeded' | 'pending' | 'failed';
   zkVerified: boolean;
+  proofHash?: string;
+  circuitName?: string;
+  blockNumber?: number;
+  fee?: number;
+  notes?: string;
   timestamp: string;
 }
 

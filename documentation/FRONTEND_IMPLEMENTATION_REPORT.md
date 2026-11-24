@@ -179,12 +179,28 @@ The application follows modular component-driven development:
   - Expanded `customer.service.ts` with `getCustomerById()`, `getCustomerInvoices()`, `updateCustomerStatus()`, and `deleteCustomer()`.
   - Enriched `Customer` type in `types/index.ts` with `address` and `notes`.
 
+### Day 12 (2026-11-24)
+- **Immutable Zero-Knowledge Ledger & Settlement Explorer:**
+  - `TransactionsPage.tsx`: Built standalone immutable ledger console displaying cryptographically verified settlement transactions with dynamic database partition indicators (`ledgerguard_tenant_<id>`).
+  - **KPI Metrics Strip:** Displays Gross Settled Volume with % success rate clearance, Total Transactions sequenced on-chain, In Clearing Transit volume, and ZK-SNARK Sealed Proofs count (Groth16/BN254).
+  - **Multi-Rail Filter & Status System:** Integrated settlement rail filtering (`Wire / Fedwire`, `ACH Network`, `Corporate Card`, `SEPA Instant`, `USDC Settlement`) with custom rail icons, status pills (`All`, `Succeeded`, `Pending`, `Failed`), and search by TX ID, Invoice Ref, Customer Name, or Proof Hash.
+  - **Real-Time Verification Action:** Re-runs simulated cryptographic on-curve pairing verification with live spinner, benchmark latency feedback (120-160ms), and toast alerts.
+  - **CSV Ledger Export:** Client-side CSV export generating detailed immutable ledger dumps with complete proof hashes, circuit names, block sequence numbers, and fees.
+- **Cryptographic Settlement Receipt Dialog:**
+  - `TransactionDetailModal.tsx`: Itemized transaction receipt modal with printable layout, net settlement calculations, ledger block heights, tenant storage partition IDs, and Groth16 / BN254 Zero-Knowledge proof commitment inspector.
+  - Provides one-click copy for the full 256-bit cryptographic proof commitment hash and interactive on-curve proof verification.
+- **Transaction Service & Model Modernization:**
+  - Enriched `Transaction` type in `types/index.ts` with `settlementRail`, `proofHash`, `circuitName`, `blockNumber`, `fee`, and `notes`.
+  - Upgraded `transaction.service.ts` with typed `TransactionFilterOptions`, `verifyTransactionProof()` with simulated cryptographic latency, `recordTransaction()`, and RFC-4180 `exportTransactionsCSV()`.
+
 ---
 
 ## 3. Component Reference Guide
 
 | Component | Path | Description & Props |
 |:---|:---|:---|
+| `TransactionsPage` | `src/pages/transactions/TransactionsPage.tsx` | Immutable ledger explorer: `currentTenant`, `transactions`, `isLoading`, `onRefresh`. |
+| `TransactionDetailModal` | `src/components/transactions/TransactionDetailModal.tsx` | Settlement receipt & ZK audit dialog: `transaction`, `isOpen`, `onClose`. |
 | `CustomersPage` | `src/pages/customers/CustomersPage.tsx` | Dedicated customer management directory: `currentTenant`, `customers`, `isLoading`, `onRefresh`, `onIssueInvoice`. |
 | `CustomerDetailDrawer` | `src/components/customers/CustomerDetailDrawer.tsx` | Slide-over client profile drawer: `customer`, `isOpen`, `onClose`, `onIssueInvoice`, `onStatusChanged`. |
 | `AddCustomerModal` | `src/components/customers/AddCustomerModal.tsx` | Customer registration dialog: `isOpen`, `onClose`, `currentTenant`, `onCustomerCreated`. |
