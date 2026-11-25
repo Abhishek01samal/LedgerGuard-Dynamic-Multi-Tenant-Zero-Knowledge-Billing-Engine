@@ -193,12 +193,25 @@ The application follows modular component-driven development:
   - Enriched `Transaction` type in `types/index.ts` with `settlementRail`, `proofHash`, `circuitName`, `blockNumber`, `fee`, and `notes`.
   - Upgraded `transaction.service.ts` with typed `TransactionFilterOptions`, `verifyTransactionProof()` with simulated cryptographic latency, `recordTransaction()`, and RFC-4180 `exportTransactionsCSV()`.
 
+### Day 13 (2026-11-25)
+- **Dedicated Subscription Management & Proof Quotas Page:**
+  - `SubscriptionsPage.tsx`: Built standalone subscription dashboard featuring interactive monthly vs annual billing cycle switcher with automatic 20% annual discount calculations, current plan status badge, and next renewal timestamps.
+  - **Proof Quota Metering Progress Bar:** Real-time visual progress gauge displaying monthly Zero-Knowledge proof quota utilization (`proofsUsed / proofsQuota`) with responsive color-coded health states (emerald, amber, rose).
+  - **Comprehensive Tier Capability Matrix:** Detailed technical side-by-side comparison across Starter, Professional, and Enterprise tiers covering ZK proof quotas, isolated MongoDB database partitions, cryptographic pairing circuits (Groth16, PLONK, Halo2), audit retention horizons, and SLA commitments.
+- **Plan Upgrade & Proration Dialog:**
+  - `PlanUpgradeModal.tsx`: Interactive plan transition dialog comparing current tier vs target tier capabilities, real-time immediate settlement amounts based on selected billing frequency, payment instrument preview, and automated tenant plan update callbacks.
+- **Subscription Service & Tenant Partition Modernization:**
+  - `subscription.service.ts`: Expanded `SubscriptionPlan` model with annual pricing tiers, SLA specifications, circuit support, and dedicated partition quotas. Implemented `getTenantSubscription()`, `upgradeOrDowngradePlan()`, and `toggleAutoRenew()`.
+  - `tenant.service.ts`: Implemented `updateTenant()` to persist updated plan states across the application console.
+
 ---
 
 ## 3. Component Reference Guide
 
 | Component | Path | Description & Props |
 |:---|:---|:---|
+| `SubscriptionsPage` | `src/pages/subscriptions/SubscriptionsPage.tsx` | Subscription management & proof quotas: `currentTenant`, `onPlanUpdated`. |
+| `PlanUpgradeModal` | `src/components/subscriptions/PlanUpgradeModal.tsx` | Plan switch & upgrade dialog: `isOpen`, `onClose`, `targetPlan`, `currentSubscription`, `currentTenant`, `initialCycle`, `onPlanChanged`. |
 | `TransactionsPage` | `src/pages/transactions/TransactionsPage.tsx` | Immutable ledger explorer: `currentTenant`, `transactions`, `isLoading`, `onRefresh`. |
 | `TransactionDetailModal` | `src/components/transactions/TransactionDetailModal.tsx` | Settlement receipt & ZK audit dialog: `transaction`, `isOpen`, `onClose`. |
 | `CustomersPage` | `src/pages/customers/CustomersPage.tsx` | Dedicated customer management directory: `currentTenant`, `customers`, `isLoading`, `onRefresh`, `onIssueInvoice`. |

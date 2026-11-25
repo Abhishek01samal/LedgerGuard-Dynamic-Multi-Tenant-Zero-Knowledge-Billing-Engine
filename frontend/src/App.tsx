@@ -17,14 +17,12 @@ import {
   Building,
   ShieldCheck,
   Users,
-  Check,
   Lock,
 } from 'lucide-react';
 import { formatCurrency } from './utils/formatters';
 import { invoiceService } from './services/invoice.service';
 import { customerService } from './services/customer.service';
 import { tenantService } from './services/tenant.service';
-import { subscriptionService, type SubscriptionPlan } from './services/subscription.service';
 import { transactionService } from './services/transaction.service';
 import { LandingPage } from './pages/LandingPage';
 import { LoginPage } from './pages/auth/LoginPage';
@@ -33,6 +31,7 @@ import { DashboardOverview } from './pages/dashboard/DashboardOverview';
 import { InvoicesPage } from './pages/invoices/InvoicesPage';
 import { CustomersPage } from './pages/customers/CustomersPage';
 import { TransactionsPage } from './pages/transactions/TransactionsPage';
+import { SubscriptionsPage } from './pages/subscriptions/SubscriptionsPage';
 import { CreateInvoiceModal } from './components/invoices/CreateInvoiceModal';
 import { AddCustomerModal } from './components/customers/AddCustomerModal';
 import { authService } from './services/auth.service';
@@ -56,8 +55,7 @@ export function App() {
   const [isLoadingCustomers, setIsLoadingCustomers] = useState(false);
   const [isAddCustomerOpen, setIsAddCustomerOpen] = useState(false);
 
-  // Subscriptions & Transactions State
-  const [subscriptionPlans, setSubscriptionPlans] = useState<SubscriptionPlan[]>([]);
+  // Transactions State
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoadingTransactions, setIsLoadingTransactions] = useState(false);
 
@@ -69,12 +67,10 @@ export function App() {
     async function loadInitialData() {
       const tenantList = await tenantService.getTenants();
       const active = await tenantService.getActiveTenant();
-      const plans = await subscriptionService.getPlans();
       const txs = await transactionService.getTransactions(active.id);
 
       setTenants(tenantList);
       setCurrentTenant(active);
-      setSubscriptionPlans(plans);
       setTransactions(txs);
       loadInvoices();
       loadCustomers(active.id);
@@ -314,6 +310,16 @@ export function App() {
             if (currentTenant) loadTransactions(currentTenant.id);
           }}
         />
+      ) : activeTab === 'subscriptions' ? (
+        <SubscriptionsPage
+          currentTenant={currentTenant}
+          onPlanUpdated={(newPlan) => {
+            if (currentTenant) {
+              setCurrentTenant({ ...currentTenant, plan: newPlan });
+              tenantService.updateTenant(currentTenant.id, { plan: newPlan }).catch(() => {});
+            }
+          }}
+        />
       ) : (
         <>
           {/* 4 Financial Metric Cards (Contextual overview for secondary modules) */}
@@ -391,68 +397,7 @@ export function App() {
           </div>
 
           {/* Main Routed Content Based on Active Tab */}
-          {activeTab === 'subscriptions' ? (
-        /* Subscriptions & Tiers View */
-        <div className="space-y-6">
-          <Card
-            title="Tenant Subscription Tiers"
-            subtitle="Configured billing engine limits and Zero-Knowledge verification proof quotas"
-          >
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
-              {subscriptionPlans.map((plan) => {
-                const isCurrent = currentTenant?.plan.toLowerCase() === plan.name.toLowerCase().split(' ')[0];
-                return (
-                  <div
-                    key={plan.id}
-                    className={`rounded-xl border p-6 flex flex-col justify-between transition-all ${
-                      plan.isPopular
-                        ? 'border-slate-900 shadow-md bg-white relative'
-                        : 'border-slate-200 bg-white hover:border-slate-300'
-                    }`}
-                  >
-                    {plan.isPopular && (
-                      <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] font-semibold uppercase tracking-wider px-3 py-0.5 rounded-full">
-                        Recommended
-                      </div>
-                    )}
-                    <div>
-                      <div className="flex items-center justify-between">
-                        <h3 className="font-bold text-slate-900 text-base">{plan.name}</h3>
-                        {isCurrent && <Badge variant="success" size="sm">Active Plan</Badge>}
-                      </div>
-                      <p className="text-xs text-slate-500 mt-1">{plan.description}</p>
-                      <div className="mt-4 flex items-baseline gap-1">
-                        <span className="text-3xl font-bold text-slate-900">${plan.priceMonthly}</span>
-                        <span className="text-xs text-slate-500">/ month</span>
-                      </div>
-
-                      <div className="mt-6 space-y-2.5 text-xs text-slate-600">
-                        {plan.features.map((feat, idx) => (
-                          <div key={idx} className="flex items-center gap-2">
-                            <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                            <span>{feat}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="mt-6 pt-4 border-t border-slate-100">
-                      <Button
-                        variant={isCurrent ? 'secondary' : plan.isPopular ? 'primary' : 'outline'}
-                        className="w-full text-xs"
-                        disabled={isCurrent}
-                        onClick={() => showToast(`Selected upgrade to ${plan.name} plan.`, 'success')}
-                      >
-                        {isCurrent ? 'Current Plan' : 'Select Plan'}
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </Card>
-        </div>
-      ) : activeTab === 'tenants' ? (
+          {activeTab === 'tenants' ? (
         /* Multi-Tenant Organizations View */
         <Card
           title="Multi-Tenant Partitioned Architecture"
@@ -560,7 +505,7 @@ export function App() {
           <Card
             title="28-Day Development Milestone Log"
             subtitle="Live progress tracked on GitHub branch 'shraddha'"
-            action={<Badge variant="success">Day 12 Complete</Badge>}
+            action={<Badge variant="success">Day 13 Complete</Badge>}
           >
             <div className="space-y-3">
               <div className="flex items-start gap-3 p-3 rounded-lg bg-emerald-50/50 border border-emerald-200">
@@ -727,6 +672,20 @@ export function App() {
                   </div>
                   <p className="text-[11px] text-slate-600 mt-0.5">
                     Engineered standalone TransactionsPage with settlement rail filtering, live ZK-SNARK verification runner (Groth16/BN254), TransactionDetailModal receipt generator with copyable proof commitments, and CSV ledger export.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-emerald-50/50 border border-emerald-200">
+                <div className="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0 text-xs font-bold">
+                  ✓
+                </div>
+                <div>
+                  <div className="text-xs font-semibold text-slate-900">
+                    Day 13: Subscription Tiers, Proof Quota Metering & Plan Upgrade Flow (Nov 25, 2026)
+                  </div>
+                  <p className="text-[11px] text-slate-600 mt-0.5">
+                    Engineered standalone SubscriptionsPage with annual discount toggle (save 20%), live ZK proof quota metering progress bar, side-by-side tier capability matrix, and PlanUpgradeModal with proration calculations.
                   </p>
                 </div>
               </div>
