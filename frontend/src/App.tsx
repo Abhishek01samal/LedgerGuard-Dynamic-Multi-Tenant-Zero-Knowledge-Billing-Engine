@@ -34,7 +34,9 @@ import { TransactionsPage } from './pages/transactions/TransactionsPage';
 import { SubscriptionsPage } from './pages/subscriptions/SubscriptionsPage';
 import { CreateInvoiceModal } from './components/invoices/CreateInvoiceModal';
 import { AddCustomerModal } from './components/customers/AddCustomerModal';
+import { CommandPalette } from './components/common/CommandPalette';
 import { authService } from './services/auth.service';
+import type { SearchResultItem } from './services/search.service';
 import type { Invoice, Tenant, Customer, Transaction, AuthSession } from './types';
 import type { BreadcrumbItem } from './components/layout/Breadcrumbs';
 
@@ -61,6 +63,21 @@ export function App() {
 
   // Invoice Modal State
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
+  // Command Palette & Global Search State
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+
+  // Global Keyboard Listener for Ctrl+K / Cmd+K
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsCommandPaletteOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Initial Load
   useEffect(() => {
@@ -111,6 +128,18 @@ export function App() {
       loadTransactions(currentTenant.id);
     }
   }, [currentTenant]);
+
+  const handleSearchResultSelect = (item: SearchResultItem) => {
+    if (item.actionType === 'trigger_action') {
+      if (item.payload === 'create_invoice') {
+        setIsCreateModalOpen(true);
+      } else if (item.payload === 'add_customer') {
+        setIsAddCustomerOpen(true);
+      }
+    } else if (item.targetTab) {
+      setActiveTab(item.targetTab);
+    }
+  };
 
   // Breadcrumbs builder
   const getBreadcrumbs = (): BreadcrumbItem[] => {
@@ -185,6 +214,7 @@ export function App() {
         showToast(`Active organization switched to ${t.name}`, 'info');
       }}
       onViewLandingPage={() => setViewMode('landing')}
+      onOpenGlobalSearch={() => setIsCommandPaletteOpen(true)}
       onLogout={() => {
         authService.logout();
         setSession(null);
@@ -505,7 +535,7 @@ export function App() {
           <Card
             title="28-Day Development Milestone Log"
             subtitle="Live progress tracked on GitHub branch 'shraddha'"
-            action={<Badge variant="success">Day 13 Complete</Badge>}
+            action={<Badge variant="success">Day 14 Complete</Badge>}
           >
             <div className="space-y-3">
               <div className="flex items-start gap-3 p-3 rounded-lg bg-emerald-50/50 border border-emerald-200">
@@ -689,6 +719,20 @@ export function App() {
                   </p>
                 </div>
               </div>
+
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-emerald-50/50 border border-emerald-200">
+                <div className="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0 text-xs font-bold">
+                  ✓
+                </div>
+                <div>
+                  <div className="text-xs font-semibold text-slate-900">
+                    Day 14: Universal Command Palette, Cross-Module Search & Date Filtering (Nov 26, 2026)
+                  </div>
+                  <p className="text-[11px] text-slate-600 mt-0.5">
+                    Engineered global CommandPalette modal (Ctrl+K / Cmd+K) with cross-module search indexing (invoices, customers, ledger proofs, actions), keyboard arrow navigation, DateRangeFilter presets, and Navbar quick-search trigger.
+                  </p>
+                </div>
+              </div>
             </div>
           </Card>
         </div>
@@ -745,6 +789,14 @@ export function App() {
         onCustomerCreated={() => {
           if (currentTenant) loadCustomers(currentTenant.id);
         }}
+      />
+
+      {/* Universal Command Palette & Quick Search (Ctrl+K / Cmd+K) */}
+      <CommandPalette
+        isOpen={isCommandPaletteOpen}
+        onClose={() => setIsCommandPaletteOpen(false)}
+        currentTenant={currentTenant}
+        onSelectResult={handleSearchResultSelect}
       />
     </DashboardLayout>
   );

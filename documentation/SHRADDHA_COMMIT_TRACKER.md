@@ -23,8 +23,8 @@
 | **Day 10** | 2026-11-22 | Multi-line-item invoice creation modal (`CreateInvoiceModal.tsx`), dynamic line item builder (add/remove rows, quantity × unit price auto-calculation), customer auto-fill from directory, automated payment terms due date calculation, tax & discount controls, ZK-SNARK commitment preview, and robust validation. | `f1fc30f` | Pushed to `origin/shraddha` | Pre-commit build verified (`tsc -b && vite build` built clean in 1.00s with 0 errors). |
 | **Day 11** | 2026-11-23 | Enterprise customer management page (`CustomersPage.tsx`), top KPI summary cards (total clients, active, inactive, lifetime volume), real-time search & status filtering, CSV directory export, slide-over `CustomerDetailDrawer.tsx` with itemized invoice history and ZK seal indicators, `AddCustomerModal.tsx` dialog, and account status toggles. | `56c35ca` | Pushed to `origin/shraddha` | Pre-commit build verified (`tsc -b && vite build` built clean in 1.66s with 0 errors). |
 | **Day 12** | 2026-11-24 | Immutable Zero-Knowledge ledger page (`TransactionsPage.tsx`), settlement rail filter (Wire, ACH, Card, SEPA, USDC), cryptographic verification runner, settlement receipt dialog (`TransactionDetailModal.tsx`) with copyable proof commitment, and CSV ledger export. | `f25dcde` | Pushed to `origin/shraddha` | Pre-commit build verified (`tsc -b && vite build` built clean in 2.20s with 0 errors). |
-| **Day 13** | 2026-11-25 | Subscription tiers & proof quota page (`SubscriptionsPage.tsx`), monthly/annual billing cycle switcher (20% discount), live ZK proof quota progress meter, comprehensive capability matrix, and plan upgrade dialog (`PlanUpgradeModal.tsx`) with live proration calculations. | `aeaa715` | Pushed to `origin/shraddha` | Pre-commit build verified (`tsc -b && vite build` built clean in 1.66s with 0 errors). |
-| Day 14 | - | *Scheduled: Universal search, date filtering, column sorting* | - | - | - |
+| **Day 13** | 2026-11-25 | Subscription tiers & proof quota page (`SubscriptionsPage.tsx`), monthly/annual billing cycle switcher (20% discount), live ZK proof quota progress meter, comprehensive capability matrix, and plan upgrade dialog (`PlanUpgradeModal.tsx`) with live proration calculations. | `20f90d9` | Pushed to `origin/shraddha` | Pre-commit build verified (`tsc -b && vite build` built clean in 1.66s with 0 errors). |
+| **Day 14** | 2026-11-26 | Universal command palette (`CommandPalette.tsx`) with `Ctrl+K` / `Cmd+K` global keyboard listener, cross-module search service (`search.service.ts`) aggregating invoices, customers, transactions, and actions, reusable date range filter (`DateRangeFilter.tsx`), and top navigation bar quick-search integration. | `ff38fd4` | Pushed to `origin/shraddha` | Pre-commit build verified (`tsc -b && vite build` built clean in 1.32s with 0 errors). |
 | Day 15 | - | *Scheduled: Multi-tenant organization switcher & isolation UI* | - | - | - |
 | Day 16 | - | *Scheduled: Central API service layer, mock adapter, error interceptors* | - | - | - |
 | Day 17 | - | *Scheduled: Auth guards, protected route wrappers, session handling* | - | - | - |
@@ -43,6 +43,6 @@
 ---
 
 ## Contribution Summary
-- **Current Distinct Contribution Days:** 13 / 20
-- **Total Project Days Elapsed:** 13 / 28
+- **Current Distinct Contribution Days:** 14 / 20
+- **Total Project Days Elapsed:** 14 / 28
 - **Active Branch:** `shraddha`

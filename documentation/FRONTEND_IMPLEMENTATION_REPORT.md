@@ -204,12 +204,27 @@ The application follows modular component-driven development:
   - `subscription.service.ts`: Expanded `SubscriptionPlan` model with annual pricing tiers, SLA specifications, circuit support, and dedicated partition quotas. Implemented `getTenantSubscription()`, `upgradeOrDowngradePlan()`, and `toggleAutoRenew()`.
   - `tenant.service.ts`: Implemented `updateTenant()` to persist updated plan states across the application console.
 
+### Day 14 (2026-11-26)
+- **Universal Command Palette (`CommandPalette.tsx`):**
+  - Designed and implemented a keyboard-first command palette triggered globally via `Ctrl+K` / `Cmd+K` and from the top navigation search trigger.
+  - Supports category filtering (All, Invoices, Customers, Transactions, Quick Actions), keyboard navigation (`ArrowUp`, `ArrowDown`, `Enter`, `Escape`), recent searches, and instant routing to specific tabs and modals.
+- **Cross-Module Search Indexer (`search.service.ts`):**
+  - Architected asynchronous federated search service performing parallel entity lookups across invoices, customers, and immutable transactions with tenant isolation.
+  - Provides instant structured search results complete with metadata badges, status chips, formatted amounts, and actionable payload routing.
+- **Reusable Universal Date Range Filter (`DateRangeFilter.tsx`):**
+  - Created standardized date range preset selector dropdown supporting All Time, Today, Last 7 Days, Last 30 Days, Q4, and Year to Date.
+  - Integrated into top navigation bar and cross-tab views for consistent temporal scoping.
+- **Navigation Shell & Global Shortcut Integration:**
+  - Enhanced `Navbar.tsx` and `DashboardLayout.tsx` with dedicated command search bar with macOS/Windows badge indicator (`⌘K`), mobile search action button, and search result selection handler in `App.tsx`.
+
 ---
 
 ## 3. Component Reference Guide
 
 | Component | Path | Description & Props |
 |:---|:---|:---|
+| `CommandPalette` | `src/components/common/CommandPalette.tsx` | Universal keyboard command palette: `isOpen`, `onClose`, `currentTenantId`, `onSelectResult`. |
+| `DateRangeFilter` | `src/components/common/DateRangeFilter.tsx` | Standardized date range selector: `value`, `onChange`, `align`. |
 | `SubscriptionsPage` | `src/pages/subscriptions/SubscriptionsPage.tsx` | Subscription management & proof quotas: `currentTenant`, `onPlanUpdated`. |
 | `PlanUpgradeModal` | `src/components/subscriptions/PlanUpgradeModal.tsx` | Plan switch & upgrade dialog: `isOpen`, `onClose`, `targetPlan`, `currentSubscription`, `currentTenant`, `initialCycle`, `onPlanChanged`. |
 | `TransactionsPage` | `src/pages/transactions/TransactionsPage.tsx` | Immutable ledger explorer: `currentTenant`, `transactions`, `isLoading`, `onRefresh`. |

@@ -17,6 +17,7 @@ export interface DashboardLayoutProps {
   actions?: React.ReactNode;
   onViewLandingPage?: () => void;
   onLogout?: () => void;
+  onOpenGlobalSearch?: () => void;
 }
 
 export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
@@ -32,6 +33,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   actions,
   onViewLandingPage,
   onLogout,
+  onOpenGlobalSearch,
 }) => {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isDesktopCollapsed, setIsDesktopCollapsed] = useState(false);
@@ -46,6 +48,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
         onToggleMobileMenu={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
         onViewLandingPage={onViewLandingPage}
         onLogout={onLogout}
+        onOpenGlobalSearch={onOpenGlobalSearch}
       />
 
       <div className="flex flex-1">

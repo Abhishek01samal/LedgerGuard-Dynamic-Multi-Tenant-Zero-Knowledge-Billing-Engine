@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShieldCheck, Building2, Bell, UserCheck, ChevronDown, Check, Menu, Globe, LogOut } from 'lucide-react';
+import { ShieldCheck, Building2, Bell, UserCheck, ChevronDown, Check, Menu, Globe, LogOut, Search } from 'lucide-react';
 import { Badge } from '../common/Badge';
 import type { Tenant } from '../../types';
 
@@ -10,6 +10,7 @@ export interface NavbarProps {
   onToggleMobileMenu?: () => void;
   onViewLandingPage?: () => void;
   onLogout?: () => void;
+  onOpenGlobalSearch?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -19,6 +20,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onToggleMobileMenu,
   onViewLandingPage,
   onLogout,
+  onOpenGlobalSearch,
 }) => {
   const [isTenantDropdownOpen, setIsTenantDropdownOpen] = useState(false);
 
@@ -103,8 +105,37 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
       </div>
 
+      {/* Center: Universal Global Search Bar (Ctrl+K / Cmd+K) */}
+      <div className="flex-1 max-w-md mx-3 hidden md:block">
+        <button
+          type="button"
+          onClick={onOpenGlobalSearch}
+          className="w-full flex items-center justify-between px-3 py-1.5 text-xs text-slate-400 bg-slate-50 hover:bg-slate-100/80 border border-slate-200 rounded-lg transition-colors cursor-pointer group shadow-2xs"
+          title="Search invoices, clients, ledger proofs, or jump to (Ctrl+K)"
+        >
+          <div className="flex items-center gap-2 text-slate-500 group-hover:text-slate-800 transition-colors">
+            <Search className="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-600" />
+            <span>Universal search across modules...</span>
+          </div>
+          <kbd className="px-1.5 py-0.5 text-[10px] font-mono font-medium text-slate-500 bg-white border border-slate-200 rounded shadow-2xs">
+            ⌘K
+          </kbd>
+        </button>
+      </div>
+
       {/* Right: ZK Security Status & User Profile */}
-      <div className="flex items-center gap-3 md:gap-4">
+      <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
+        {/* Mobile Search Trigger Icon */}
+        <button
+          type="button"
+          onClick={onOpenGlobalSearch}
+          className="md:hidden p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+          title="Universal search"
+          aria-label="Universal search"
+        >
+          <Search className="w-4 h-4" />
+        </button>
+
         <div className="hidden lg:flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-full px-3 py-1 text-xs text-slate-600">
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
           <span className="font-medium">ZK Engine: Operational</span>
