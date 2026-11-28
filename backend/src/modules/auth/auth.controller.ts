@@ -1,6 +1,8 @@
 import type { CookieOptions, RequestHandler } from 'express';
+import { ZodError } from 'zod';
 import { env } from '../../config/env';
 import { AppError } from '../../middleware/error.middleware';
+import { recordAudit } from '../../services/audit.service';
 import { getUserById, login } from './auth.service';
 import { loginSchema } from './auth.validation';
 
@@ -13,12 +15,35 @@ const cookieOptions: CookieOptions = {
 };
 
 export const loginHandler: RequestHandler = async (req, res, next) => {
+  const started = Date.now();
   try {
     const { email, password } = loginSchema.parse(req.body);
     const { user, token } = await login(email, password);
     res.cookie(env.cookieName, token, cookieOptions);
+    void recordAudit({
+      traceId: res.locals.traceId ?? 'unknown',
+      tenantId: user.tenantId,
+      userId: user.id,
+      event: 'AUTH_SUCCESS',
+      method: req.method,
+      endpoint: req.originalUrl,
+      statusCode: 200,
+      durationMs: Date.now() - started,
+    });
     res.status(200).json({ success: true, message: 'Login successful', data: { user } });
   } catch (err) {
+    void recordAudit({
+      traceId: res.locals.traceId ?? 'unknown',
+      tenantId: null,
+      userId: null,
+      event: 'AUTH_FAILURE',
+      method: req.method,
+      endpoint: req.originalUrl,
+      statusCode: err instanceof AppError ? err.statusCode : err instanceof ZodError ? 400 : 500,
+      durationMs: Date.now() - started,
+      message:
+        err instanceof AppError ? err.code : err instanceof ZodError ? 'VALIDATION_ERROR' : 'INTERNAL_ERROR',
+    });
     next(err);
   }
 };

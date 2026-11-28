@@ -1,15 +1,26 @@
 import { createApp } from './app';
 import { env } from './config/env';
+import { closeRedis, connectRedis } from './config/redis';
+import { closeAllTenantConnections } from './database/tenant.connection';
+import { registerIdempotencyGuard } from './services/idempotency.service';
 
-const app = createApp();
-const server = app.listen(env.port, () => {
-  console.log(`LedgerGuard API listening on :${env.port} (${env.nodeEnv})`);
-});
+function main(): void {
+  connectRedis();
+  registerIdempotencyGuard();
 
-function shutdown(signal: string): void {
-  console.log(`${signal} received, shutting down`);
-  // TODO(Person 2): call closeAllTenantConnections() here once available.
-  server.close(() => process.exit(0));
+  const app = createApp();
+  const server = app.listen(env.port, () => {
+    console.log(`LedgerGuard API listening on :${env.port} (${env.nodeEnv})`);
+  });
+
+  function shutdown(signal: string): void {
+    console.log(`${signal} received, shutting down`);
+    server.close(() => {
+      void Promise.all([closeAllTenantConnections(), closeRedis()]).finally(() => process.exit(0));
+    });
+  }
+  process.on('SIGINT', () => shutdown('SIGINT'));
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
 }
-process.on('SIGINT', () => shutdown('SIGINT'));
-process.on('SIGTERM', () => shutdown('SIGTERM'));
+
+main();

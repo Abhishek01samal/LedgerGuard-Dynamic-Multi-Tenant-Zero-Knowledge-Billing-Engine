@@ -65,6 +65,7 @@ export function signToken(user: AuthUser): string {
     algorithm: 'RS256',
     expiresIn: env.jwt.expiresIn as jwt.SignOptions['expiresIn'],
     issuer: env.jwt.issuer,
+    audience: env.jwt.audience,
   });
 }
 
@@ -74,6 +75,7 @@ export function verifyToken(token: string): TokenClaims {
     const decoded = jwt.verify(token, env.jwt.publicKey, {
       algorithms: ['RS256'], // never accept HS256/none
       issuer: env.jwt.issuer,
+      audience: env.jwt.audience,
     });
     return tokenClaimsSchema.parse(decoded);
   } catch (err) {

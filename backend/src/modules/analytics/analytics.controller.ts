@@ -1,7 +1,8 @@
 // backend/src/modules/analytics/analytics.controller.ts
 // Day 3 – Person 1. HTTP layer: validate → service → { success, data }.
 import type { NextFunction, Request, Response } from "express";
-import { ZodError, type ZodType } from "zod";
+import { ZodError, type ZodTypeDef, type ZodType } from "zod";
+import { AppError } from "../../middleware/error.middleware";
 import * as service from "./analytics.service";
 import type { TenantRequest } from "./analytics.types";
 import {
@@ -18,15 +19,13 @@ import {
 function tenantCtx(req: Request) {
   const { tenantId, tenantConnection } = req as TenantRequest;
   if (!tenantId || !tenantConnection) {
-    const err = new Error("Tenant context missing");
-    (err as any).status = 401;
-    throw err;
+    throw new AppError(401, "Tenant context missing", "UNAUTHENTICATED");
   }
   return { tenantId, conn: tenantConnection };
 }
 
 function handler<Q, R>(
-  schema: ZodType<Q, any, any>,
+  schema: ZodType<Q, ZodTypeDef, unknown>,
   fn: (conn: TenantRequest["tenantConnection"], tenantId: string, q: Q) => Promise<R>
 ) {
   return async (req: Request, res: Response, next: NextFunction) => {

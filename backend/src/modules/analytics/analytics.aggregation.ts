@@ -1,6 +1,6 @@
 // backend/src/modules/analytics/analytics.aggregation.ts
 // Day 2 – Person 1. Pure pipeline builders (no DB access) so Person 4 can unit-test them.
-import type { Document } from "mongodb";
+import type { PipelineStage } from "mongoose";
 import { TX_FIELDS as F, TX_STATUS as S, type DateRange, type Period } from "./analytics.types";
 
 const UNIT: Record<Period, "day" | "week" | "month"> = {
@@ -14,21 +14,19 @@ const UNIT: Record<Period, "day" | "week" | "month"> = {
  * - tenantId is matched even though each tenant has its own connection (defence in depth).
  * - createdAt range is [from, to) in UTC.
  */
-export function baseMatch(tenantId: string, range: DateRange): Document {
+export function baseMatch(tenantId: string, range: DateRange): Record<string, unknown> {
   return {
     [F.tenantId]: tenantId,
     [F.createdAt]: { $gte: range.from, $lt: range.to },
-    // If your ledger stores debit AND credit rows for one payment, count only one side here, e.g.:
-    // entryType: "DEBIT",
   };
 }
 
-const countIf = (status: string): Document => ({
+const countIf = (status: string) => ({
   $sum: { $cond: [{ $eq: [`$${F.status}`, status] }, 1, 0] },
 });
 
 /** API 1 + API 5: one pass over the data, counts for every status + expenditure for ONE currency. */
-export function summaryPipeline(tenantId: string, range: DateRange, currency: string): Document[] {
+export function summaryPipeline(tenantId: string, range: DateRange, currency: string): PipelineStage[] {
   return [
     { $match: baseMatch(tenantId, range) },
     {
@@ -64,7 +62,7 @@ export function expenditurePipeline(
   range: DateRange,
   period: Period,
   currency: string
-): Document[] {
+): PipelineStage[] {
   return [
     {
       $match: {
@@ -91,7 +89,7 @@ export function expenditurePipeline(
 }
 
 /** API 3: transaction counts per period bucket, split by outcome. */
-export function usagePipeline(tenantId: string, range: DateRange, period: Period): Document[] {
+export function usagePipeline(tenantId: string, range: DateRange, period: Period): PipelineStage[] {
   return [
     { $match: baseMatch(tenantId, range) },
     {

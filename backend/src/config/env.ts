@@ -14,9 +14,16 @@ const schema = z.object({
   JWT_PUBLIC_KEY: z.string().optional(),
   JWT_EXPIRES_IN: z.string().default('15m'),
   JWT_ISSUER: z.string().default('ledgerguard'),
+  JWT_AUDIENCE: z.string().default('ledgerguard-api'),
   COOKIE_NAME: z.string().default('lg_token'),
   FRONTEND_URL: z.string().url().default('http://localhost:5173'),
   SEED_USER_PASSWORD: z.string().min(8).default('password123'),
+  REDIS_URL: z.string().optional(),
+  LOG_LEVEL: z.enum(['error', 'warn', 'info', 'debug']).default('info'),
+  REQUIRE_REQUEST_SIGNATURE: z
+    .enum(['true', 'false'])
+    .optional()
+    .transform((v) => v === 'true'),
   // Demo-only rollback trigger (ignored in production). See docs/ledger-integration.md.
   LEDGER_DEMO_FAIL_ACCOUNT: z.string().trim().min(1).optional(),
 });
@@ -48,9 +55,13 @@ export const env = {
     publicKey: loadKey(raw.JWT_PUBLIC_KEY, raw.JWT_PUBLIC_KEY_PATH, 'JWT public key'),
     expiresIn: raw.JWT_EXPIRES_IN,
     issuer: raw.JWT_ISSUER,
+    audience: raw.JWT_AUDIENCE,
   },
   cookieName: raw.COOKIE_NAME,
   frontendUrl: raw.FRONTEND_URL,
   seedUserPassword: raw.SEED_USER_PASSWORD,
+  redisUrl: raw.REDIS_URL,
+  logLevel: raw.LOG_LEVEL,
+  requireRequestSignature: Boolean(raw.REQUIRE_REQUEST_SIGNATURE),
   ledgerDemoFailAccount: raw.NODE_ENV === 'production' ? undefined : raw.LEDGER_DEMO_FAIL_ACCOUNT,
 } as const;

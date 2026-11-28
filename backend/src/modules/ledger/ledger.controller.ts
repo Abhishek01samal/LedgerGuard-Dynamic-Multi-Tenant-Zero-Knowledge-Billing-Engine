@@ -1,6 +1,9 @@
 import type { RequestHandler } from 'express';
 import type { Connection } from 'mongoose';
+import { ZodError } from 'zod';
+import { AppError } from '../../middleware/error.middleware';
 import { getTenantContext } from '../../middleware/auth.middleware';
+import { recordAudit } from '../../services/audit.service';
 import type { LedgerService } from './ledger.service';
 import type { TenantContext } from './ledger.types';
 import {
@@ -33,11 +36,38 @@ export function createLedgerController({ service, getConnection }: LedgerControl
 
   return {
     createTransaction: async (req, res, next) => {
+      const started = Date.now();
+      const traceId = res.locals.traceId ?? 'unknown';
+      let ctx: TenantContext | null = null;
+      let transactionId: string | null = null;
       try {
         const input = createTransactionSchema.parse(req.body);
         const key = idempotencyKeySchema.parse(req.header('Idempotency-Key'));
-        const ctx = await tenantContext(req);
+        ctx = await tenantContext(req);
+        void recordAudit({
+          traceId,
+          tenantId: ctx.tenantId,
+          userId: ctx.userId,
+          event: 'TRANSACTION_STARTED',
+          method: req.method,
+          endpoint: req.originalUrl,
+          statusCode: 202,
+          durationMs: 0,
+          message: input.eventId,
+        });
         const { transaction, replayed } = await service.createTransaction(ctx, input, key);
+        transactionId = transaction.transactionId;
+        void recordAudit({
+          traceId,
+          tenantId: ctx.tenantId,
+          userId: ctx.userId,
+          event: replayed ? 'TRANSACTION_REPLAYED' : 'TRANSACTION_COMPLETED',
+          transactionId,
+          method: req.method,
+          endpoint: req.originalUrl,
+          statusCode: replayed ? 200 : 201,
+          durationMs: Date.now() - started,
+        });
         res.setHeader('Idempotent-Replayed', String(replayed));
         res.status(replayed ? 200 : 201).json({
           success: true,
@@ -45,6 +75,22 @@ export function createLedgerController({ service, getConnection }: LedgerControl
           data: transaction,
         });
       } catch (err) {
+        if (err instanceof AppError && err.data && typeof err.data === 'object' && 'transactionId' in err.data) {
+          transactionId = (err.data as { transactionId: string | null }).transactionId;
+        }
+        void recordAudit({
+          traceId,
+          tenantId: ctx?.tenantId ?? null,
+          userId: ctx?.userId ?? null,
+          event: 'TRANSACTION_FAILED',
+          transactionId,
+          method: req.method,
+          endpoint: req.originalUrl,
+          statusCode: err instanceof AppError ? err.statusCode : err instanceof ZodError ? 400 : 500,
+          durationMs: Date.now() - started,
+          message:
+            err instanceof AppError ? err.code : err instanceof ZodError ? 'VALIDATION_ERROR' : 'INTERNAL_ERROR',
+        });
         next(err);
       }
     },

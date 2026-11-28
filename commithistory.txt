@@ -1,0 +1,335 @@
+LEDGERGUARD - 10-DAY COMMIT HISTORY PLAN
+========================================
+
+Purpose
+-------
+This document divides the current LedgerGuard codebase into a recommended 10-day
+series of commits. For each day it lists the exact files, why each file belongs
+in that commit, a suggested verification step, and explicit git commands.
+
+Writing this file does not create commits. No push is performed. The commands
+below are recommendations for how the history could have been built day by day.
+
+Safety rules applied to this document
+-------------------------------------
+1. This file contains file paths, commit messages, rationale, verification
+   steps, and explicit git add commands only.
+2. It does not contain environment file values, private keys, RSA PEM material,
+   tokens, cookies, connection strings with credentials, or tenant data dumps.
+3. Demo credentials are not repeated here; they are documented in README.md.
+4. Never stage with broad wildcards or all-files flags. Every day uses explicit
+   paths so secrets cannot be staged accidentally.
+5. The repository .gitignore already excludes: .env, .env.* except .env.example,
+   *.pem, *.key, node_modules/, dist/, and coverage/.
+6. Before finishing, verify with `git status --short` and scan this file for
+   secret-like patterns.
+
+Excluded from the plan: node_modules/, dist/, coverage/, .env, *.pem, *.key,
+and other generated or ignored artifacts.
+
+
+DAY 1 - Monorepo foundation and build tooling
+---------------------------------------------
+Suggested commit: chore: scaffold monorepo tooling and root scripts
+
+Files:
+- README.md - Project overview, local setup, demo-mode instructions, and security notes.
+- CONTRIBUTING.md - Branching, review, and contribution conventions.
+- .gitignore - Blocks environment files, private keys, dependencies, and build output.
+- .dockerignore - Keeps dependencies and secrets out of Docker build contexts.
+- package.json - Root scripts: dev, dev:backend, dev:frontend, test, typecheck, build.
+- package-lock.json - Locks root dev-tooling dependency tree.
+- scripts/dev.mjs - Starts backend and frontend together for a one-command dev experience.
+- backend/package.json - API runtime, Jest, TypeScript, and validation dependencies.
+- backend/package-lock.json - Locks backend dependency tree.
+- backend/tsconfig.json - Strict TypeScript compiler configuration for the API.
+- backend/jest.config.js - Jest test environment, transforms, and coverage settings.
+- frontend/package.json - React, Vite, Tailwind, Chart.js, and query dependencies.
+- frontend/package-lock.json - Locks frontend dependency tree.
+- frontend/tsconfig.json - Strict TypeScript configuration for React source.
+- frontend/tsconfig.node.json - TypeScript configuration for Vite config files.
+- frontend/vite.config.ts - Vite server, proxy, and build configuration.
+- frontend/postcss.config.js - PostCSS/Tailwind processing pipeline.
+- frontend/tailwind.config.js - Monochrome palette, typography, and fade/drift animations.
+- frontend/index.html - HTML shell with the dark body class used by the theme.
+- frontend/src/vite-env.d.ts - Vite client type declarations for import.meta.env.
+
+Verification:
+  npm install
+  npm run typecheck
+
+Suggested commands:
+  git add -- README.md CONTRIBUTING.md .gitignore .dockerignore package.json package-lock.json scripts/dev.mjs backend/package.json backend/package-lock.json backend/tsconfig.json backend/jest.config.js frontend/package.json frontend/package-lock.json frontend/tsconfig.json frontend/tsconfig.node.json frontend/vite.config.ts frontend/postcss.config.js frontend/tailwind.config.js frontend/index.html frontend/src/vite-env.d.ts
+  git commit -m "chore: scaffold monorepo tooling and root scripts"
+
+
+DAY 2 - Contracts, configuration, auth, and tenant isolation
+-------------------------------------------------------------
+Suggested commit: feat: add RS256 auth and tenant-isolated connection context
+
+Files:
+- shared/contracts/analytics.contract.ts - Frozen shared analytics DTO shapes.
+- shared/contracts/auth.contract.ts - Frozen shared login/session DTO shapes.
+- shared/contracts/tenant.contract.ts - Frozen tenant context shape shared by both apps.
+- backend/.env.example - Safe environment template with placeholders only.
+- backend/keys/.gitkeep - Keeps the RSA key directory in source control without keys.
+- backend/src/config/env.ts - Validates required runtime environment values at startup.
+- backend/src/config/security.config.ts - JWT issuer, audience, token TTL, and signature settings.
+- backend/src/database/tenant.connection.ts - Builds and caches per-tenant database connections.
+- backend/src/middleware/error.middleware.ts - Converts thrown AppError values into consistent HTTP responses.
+- backend/src/middleware/auth.middleware.ts - Verifies tokens and derives tenant identity only from the token.
+- backend/src/modules/auth/auth.validation.ts - Zod schemas for login and registration payloads.
+- backend/src/modules/auth/auth.service.ts - Credential verification, token issuance, and session helpers.
+- backend/src/modules/auth/auth.controller.ts - HTTP handlers for login, logout, and current-user endpoints.
+- backend/src/modules/auth/auth.routes.ts - Mounts auth endpoints behind the API router.
+- frontend/.env.example - Safe frontend template for public VITE_* flags.
+- frontend/src/types/auth.types.ts - Browser-side auth request and response types.
+- frontend/src/services/auth.service.ts - Calls login/current-user endpoints or mock equivalents.
+- frontend/src/routes/AuthContext.tsx - React context for session state, login, and logout.
+- frontend/src/pages/Login.tsx - Tenant-aware login screen.
+
+Verification:
+  npm run typecheck
+  Confirm login resolves the tenant from the verified token, never from body or query.
+
+Suggested commands:
+  git add -- shared/contracts/analytics.contract.ts shared/contracts/auth.contract.ts shared/contracts/tenant.contract.ts backend/.env.example backend/keys/.gitkeep backend/src/config/env.ts backend/src/config/security.config.ts backend/src/database/tenant.connection.ts backend/src/middleware/error.middleware.ts backend/src/middleware/auth.middleware.ts backend/src/modules/auth/auth.validation.ts backend/src/modules/auth/auth.service.ts backend/src/modules/auth/auth.controller.ts backend/src/modules/auth/auth.routes.ts frontend/.env.example frontend/src/types/auth.types.ts frontend/src/services/auth.service.ts frontend/src/routes/AuthContext.tsx frontend/src/pages/Login.tsx
+  git commit -m "feat: add RS256 auth and tenant-isolated connection context"
+
+
+DAY 3 - Ledger domain and atomic double-entry writes
+-----------------------------------------------------
+Suggested commit: feat(ledger): implement idempotent atomic double-entry ledger
+
+Files:
+- backend/src/modules/transactions/transaction.types.ts - Types for the transaction wrapper and duplicate detection.
+- backend/src/modules/transactions/transaction.service.ts - runInTransaction helper and duplicate-key handling.
+- backend/src/modules/ledger/ledger.types.ts - Ledger entry, summary, and API response types.
+- backend/src/modules/ledger/ledger.errors.ts - Typed ledger errors and HTTP status mapping.
+- backend/src/modules/ledger/ledger.model.ts - Mongoose schema with tenant/idempotency indexes.
+- backend/src/modules/ledger/ledger.mapper.ts - Converts paise-backed persisted rows into API money values.
+- backend/src/modules/ledger/ledger.validation.ts - Zod schemas for ledger create/list/detail input.
+- backend/src/modules/ledger/ledger.guard.ts - Port for balance checks and idempotency guard decisions.
+- backend/src/modules/ledger/ledger.service.ts - Debit/credit atomic writes, rollback, and tenant-scoped queries.
+- backend/src/modules/ledger/ledger.controller.ts - HTTP handlers for ledger endpoints.
+- backend/src/modules/ledger/ledger.routes.ts - Ledger router mounted behind authentication.
+- backend/scripts/demo-ledger.sh - Repeatable shell walkthrough for the ledger flow.
+
+Verification:
+  npm --prefix backend run typecheck
+  Confirm unique idempotency key behavior and paired debit/credit writes.
+
+Suggested commands:
+  git add -- backend/src/modules/transactions/transaction.types.ts backend/src/modules/transactions/transaction.service.ts backend/src/modules/ledger/ledger.types.ts backend/src/modules/ledger/ledger.errors.ts backend/src/modules/ledger/ledger.model.ts backend/src/modules/ledger/ledger.mapper.ts backend/src/modules/ledger/ledger.validation.ts backend/src/modules/ledger/ledger.guard.ts backend/src/modules/ledger/ledger.service.ts backend/src/modules/ledger/ledger.controller.ts backend/src/modules/ledger/ledger.routes.ts backend/scripts/demo-ledger.sh
+  git commit -m "feat(ledger): implement idempotent atomic double-entry ledger"
+
+
+DAY 4 - Redis locks, idempotency wiring, and app lifecycle
+----------------------------------------------------------
+Suggested commit: feat: wire Redis locks with in-process fallback and app lifecycle
+
+Files:
+- backend/src/config/redis.ts - Non-blocking Redis setup that never delays API startup.
+- backend/src/services/redis.service.ts - Thin Redis client wrapper and key helpers.
+- backend/src/services/lock.service.ts - SET NX PX lock with compare-and-delete release and in-process fallback.
+- backend/src/services/idempotency.service.ts - Registers the Redis-backed guard for request deduplication.
+- backend/src/app.ts - Express app assembly, middleware order, and route mounting.
+- backend/src/server.ts - Server bootstrap and graceful shutdown handling.
+- docs/week2-demo-checklist.md - Week 2 demo steps and tenant-isolation checks.
+- docs/week2-person1-test-evidence.md - Captured Week 2 test evidence.
+- docs/person1-ledger-engine.md - Ledger hand-off notes, error codes, and lock protocol.
+
+Verification:
+  npm run dev
+  Confirm API starts without Redis and falls back to an in-process lock.
+
+Suggested commands:
+  git add -- backend/src/config/redis.ts backend/src/services/redis.service.ts backend/src/services/lock.service.ts backend/src/services/idempotency.service.ts backend/src/app.ts backend/src/server.ts docs/week2-demo-checklist.md docs/week2-person1-test-evidence.md docs/person1-ledger-engine.md
+  git commit -m "feat: wire Redis locks with in-process fallback and app lifecycle"
+
+
+DAY 5 - Analytics aggregation and usage limits
+-----------------------------------------------
+Suggested commit: feat(analytics): add aggregation pipelines and usage limits
+
+Files:
+- backend/src/modules/analytics/analytics.types.ts - Analytics query and result types.
+- backend/src/modules/analytics/analytics.validation.ts - Zod validation for tenant, dates, and filters.
+- backend/src/modules/analytics/analytics.aggregation.ts - Mongo aggregation pipelines for summary, spend, and usage.
+- backend/src/modules/analytics/analytics.service.ts - Runs pipelines through the tenant-scoped connection.
+- backend/src/modules/analytics/analytics.controller.ts - Analytics HTTP handlers.
+- backend/src/modules/analytics/analytics.routes.ts - Analytics router behind authentication.
+- backend/src/modules/usage/usage.types.ts - Usage-limit request and response types.
+- backend/src/modules/usage/usage.validation.ts - Validation for usage queries.
+- backend/src/modules/usage/usage.model.ts - Usage collection schema.
+- backend/src/modules/usage/usage.service.ts - Monthly usage read service.
+- backend/src/modules/usage/usage.controller.ts - Usage HTTP handlers.
+- backend/src/modules/usage/usage.routes.ts - Usage router behind authentication.
+- backend/src/services/usage-calculation.service.ts - Shared remaining-limit and percentage math.
+- docs/analytics-architecture.md - Aggregation pipeline design and data flow.
+- docs/analytics-api.md - Analytics endpoint contract and query rules.
+- docs/week-3-progress.md - Week 3 implementation progress notes.
+
+Verification:
+  npm --prefix backend run typecheck
+  Confirm query tenantId is ignored and tenant comes from the token.
+
+Suggested commands:
+  git add -- backend/src/modules/analytics/analytics.types.ts backend/src/modules/analytics/analytics.validation.ts backend/src/modules/analytics/analytics.aggregation.ts backend/src/modules/analytics/analytics.service.ts backend/src/modules/analytics/analytics.controller.ts backend/src/modules/analytics/analytics.routes.ts backend/src/modules/usage/usage.types.ts backend/src/modules/usage/usage.validation.ts backend/src/modules/usage/usage.model.ts backend/src/modules/usage/usage.service.ts backend/src/modules/usage/usage.controller.ts backend/src/modules/usage/usage.routes.ts backend/src/services/usage-calculation.service.ts docs/analytics-architecture.md docs/analytics-api.md docs/week-3-progress.md
+  git commit -m "feat(analytics): add aggregation pipelines and usage limits"
+
+
+DAY 6 - Security hardening, signatures, and audit logging
+----------------------------------------------------------
+Suggested commit: feat(security): add RSA request/receipt signatures and trace logging
+
+Files:
+- backend/src/middleware/request-id.middleware.ts - Assigns a trace ID to each request.
+- backend/src/middleware/request-logging.middleware.ts - Structured request logging with redaction.
+- backend/src/middleware/signature.middleware.ts - Optional RSA body-signature verification.
+- backend/src/modules/security/security.types.ts - Signature request and response types.
+- backend/src/modules/security/security.validation.ts - Validation for signature endpoints.
+- backend/src/modules/security/signature.service.ts - RSA-SHA256 signing and verification helpers.
+- backend/src/modules/security/security.service.ts - Receipt signing orchestration.
+- backend/src/modules/security/security.controller.ts - Security HTTP handlers.
+- backend/src/modules/security/security.routes.ts - Security router behind authentication.
+- backend/src/modules/logging/logging.types.ts - Audit event and log query types.
+- backend/src/modules/logging/logging.model.ts - Tenant-scoped audit collection schema.
+- backend/src/modules/logging/logging.service.ts - Audit write and read helpers.
+- backend/src/modules/logging/logging.controller.ts - Logging HTTP handlers.
+- backend/src/modules/logging/logging.routes.ts - Logging router behind authentication.
+- backend/src/services/audit.service.ts - Redacts and persists audit events.
+- docs/security-documentation.md - Threat model, signing flow, and redaction policy.
+- docs/week-4-progress.md - Week 4 progress notes.
+
+Verification:
+  npm test -- --runTestsByPath src/tests/signature.test.ts src/tests/logging.test.ts
+  Confirm redaction behavior for sensitive fields.
+
+Suggested commands:
+  git add -- backend/src/middleware/request-id.middleware.ts backend/src/middleware/request-logging.middleware.ts backend/src/middleware/signature.middleware.ts backend/src/modules/security/security.types.ts backend/src/modules/security/security.validation.ts backend/src/modules/security/signature.service.ts backend/src/modules/security/security.service.ts backend/src/modules/security/security.controller.ts backend/src/modules/security/security.routes.ts backend/src/modules/logging/logging.types.ts backend/src/modules/logging/logging.model.ts backend/src/modules/logging/logging.service.ts backend/src/modules/logging/logging.controller.ts backend/src/modules/logging/logging.routes.ts backend/src/services/audit.service.ts docs/security-documentation.md docs/week-4-progress.md
+  git commit -m "feat(security): add RSA request/receipt signatures and trace logging"
+
+
+DAY 7 - Frontend shell, monochrome theme, and common UI
+--------------------------------------------------------
+Suggested commit: feat(ui): build monochrome dashboard shell and shared components
+
+Files:
+- frontend/src/main.tsx - React root, providers, and global styles entry.
+- frontend/src/App.tsx - Application shell and layout composition.
+- frontend/src/index.css - Black/white theme, drift glow, and reusable card/field/button classes.
+- frontend/src/routes/AppRoutes.tsx - Protected route tree and navigation shell.
+- frontend/src/hooks/useAuthExpiry.ts - Session expiry polling and logout handling.
+- frontend/src/lib/money.ts - Paise-to-currency formatting helpers.
+- frontend/src/lib/chart.ts - Shared grayscale Chart.js defaults.
+- frontend/src/components/common/EmptyState.tsx - Reusable empty-result state.
+- frontend/src/components/common/ErrorMessage.tsx - Reusable error display.
+- frontend/src/components/common/LoadingSpinner.tsx - Animated monochrome loading state.
+- frontend/src/pages/Dashboard.tsx - KPI overview landing page.
+- frontend/src/types/ledger.types.ts - Browser-side ledger DTO types.
+- frontend/src/types/analytics.types.ts - Browser-side analytics DTO types.
+- frontend/src/services/api.ts - Axios instance, auth headers, and demo-mode flag.
+- frontend/src/services/mock-data.ts - Seeded tenant-isolated demo users, transactions, and aggregates.
+- docs/architecture.md - System architecture and request-flow documentation.
+
+Verification:
+  npm run build
+  Confirm the UI renders in demo mode with no backend required.
+
+Suggested commands:
+  git add -- frontend/src/main.tsx frontend/src/App.tsx frontend/src/index.css frontend/src/routes/AppRoutes.tsx frontend/src/hooks/useAuthExpiry.ts frontend/src/lib/money.ts frontend/src/lib/chart.ts frontend/src/components/common/EmptyState.tsx frontend/src/components/common/ErrorMessage.tsx frontend/src/components/common/LoadingSpinner.tsx frontend/src/pages/Dashboard.tsx frontend/src/types/ledger.types.ts frontend/src/types/analytics.types.ts frontend/src/services/api.ts frontend/src/services/mock-data.ts docs/architecture.md
+  git commit -m "feat(ui): build monochrome dashboard shell and shared components"
+
+
+DAY 8 - Frontend feature pages and data hooks
+----------------------------------------------
+Suggested commit: feat(ui): complete billing, ledger and analytics workflows
+
+Files:
+- frontend/src/services/analytics.service.ts - Analytics API/mock data access.
+- frontend/src/services/ledger.service.ts - Ledger API/mock data access.
+- frontend/src/hooks/useAnalytics.ts - Query hook for analytics endpoints.
+- frontend/src/hooks/useUsage.ts - Query hook for usage-limit data.
+- frontend/src/pages/Analytics.tsx - Analytics page composing filters, charts, and summary cards.
+- frontend/src/pages/Ledger.tsx - Transaction table, filters, and detail view.
+- frontend/src/pages/Billing.tsx - Billing form and idempotent submission screen.
+- frontend/src/components/analytics/AnalyticsFilters.tsx - Date and dimension filters.
+- frontend/src/components/analytics/AnalyticsSummary.tsx - KPI summary cards.
+- frontend/src/components/analytics/ExpenditureChart.tsx - Grayscale expenditure visualization.
+- frontend/src/components/analytics/UsageChart.tsx - Grayscale usage visualization.
+- frontend/src/components/analytics/TransactionStats.tsx - Transaction statistics visualization.
+- frontend/src/components/analytics/UsageLimitCard.tsx - Monthly limit progress card.
+- frontend/src/components/billing/BillingForm.tsx - Validated debit/credit submission form.
+- frontend/src/components/billing/BillingConfirmation.tsx - Post-submit confirmation panel.
+- frontend/src/components/billing/TransactionStatus.tsx - Retry-safe transaction status display.
+
+Verification:
+  Login, submit a bill, inspect the ledger, then open analytics in demo mode.
+
+Suggested commands:
+  git add -- frontend/src/services/analytics.service.ts frontend/src/services/ledger.service.ts frontend/src/hooks/useAnalytics.ts frontend/src/hooks/useUsage.ts frontend/src/pages/Analytics.tsx frontend/src/pages/Ledger.tsx frontend/src/pages/Billing.tsx frontend/src/components/analytics/AnalyticsFilters.tsx frontend/src/components/analytics/AnalyticsSummary.tsx frontend/src/components/analytics/ExpenditureChart.tsx frontend/src/components/analytics/UsageChart.tsx frontend/src/components/analytics/TransactionStats.tsx frontend/src/components/analytics/UsageLimitCard.tsx frontend/src/components/billing/BillingForm.tsx frontend/src/components/billing/BillingConfirmation.tsx frontend/src/components/billing/TransactionStatus.tsx
+  git commit -m "feat(ui): complete billing, ledger and analytics workflows"
+
+
+DAY 9 - Tests and evidence
+--------------------------
+Suggested commit: test: add ledger, analytics, security and isolation suites
+
+Files:
+- backend/src/modules/ledger/__tests__/ledger.failures.test.ts - Failure, rollback, and imbalance scenarios.
+- backend/src/modules/ledger/__tests__/ledger.guard.test.ts - Guard and lock behavior tests.
+- backend/src/modules/ledger/__tests__/ledger.mapper.test.ts - Money mapping and serialization tests.
+- backend/src/modules/ledger/__tests__/ledger.routes.http.test.ts - HTTP route contract tests.
+- backend/src/modules/ledger/__tests__/ledger.service.create.test.ts - Service-level create and duplicate tests.
+- backend/src/modules/ledger/__tests__/ledger.validation.test.ts - Zod validation boundary tests.
+- backend/src/modules/ledger/test-support/test-db.ts - Test database setup and cleanup helpers.
+- backend/src/modules/ledger/test-support/test-env.ts - Test-only environment and key preparation.
+- backend/src/modules/transactions/__tests__/transaction.service.test.ts - Transaction wrapper tests.
+- backend/src/tests/aggregation.test.ts - Analytics aggregation pipeline tests.
+- backend/src/tests/analytics-isolation.test.ts - Cross-tenant analytics isolation tests.
+- backend/src/tests/analytics.test.ts - Analytics endpoint behavior tests.
+- backend/src/tests/billing.e2e.test.ts - End-to-end ledger billing flow tests.
+- backend/src/tests/fixtures/analytics-data.ts - Deterministic analytics fixtures.
+- backend/src/tests/logging.test.ts - Audit logging and redaction tests.
+- backend/src/tests/security.test.ts - Tenant isolation and signature security tests.
+- backend/src/tests/signature.test.ts - RSA signature verification tests.
+- backend/src/tests/tenant-security.test.ts - Token-derived tenant security tests.
+- backend/src/tests/usage.test.ts - Usage-limit calculation tests.
+- docs/testing-report.md - Test strategy, results, and skipped-suite rationale.
+- docs/final-project-report.md - Final project summary and feature coverage.
+
+Verification:
+  npm test
+  Expected without a replica-set test database: 63 passed, 42 skipped.
+
+Suggested commands:
+  git add -- backend/src/modules/ledger/__tests__/ledger.failures.test.ts backend/src/modules/ledger/__tests__/ledger.guard.test.ts backend/src/modules/ledger/__tests__/ledger.mapper.test.ts backend/src/modules/ledger/__tests__/ledger.routes.http.test.ts backend/src/modules/ledger/__tests__/ledger.service.create.test.ts backend/src/modules/ledger/__tests__/ledger.validation.test.ts backend/src/modules/ledger/test-support/test-db.ts backend/src/modules/ledger/test-support/test-env.ts backend/src/modules/transactions/__tests__/transaction.service.test.ts backend/src/tests/aggregation.test.ts backend/src/tests/analytics-isolation.test.ts backend/src/tests/analytics.test.ts backend/src/tests/billing.e2e.test.ts backend/src/tests/fixtures/analytics-data.ts backend/src/tests/logging.test.ts backend/src/tests/security.test.ts backend/src/tests/signature.test.ts backend/src/tests/tenant-security.test.ts backend/src/tests/usage.test.ts docs/testing-report.md docs/final-project-report.md
+  git commit -m "test: add ledger, analytics, security and isolation suites"
+
+
+DAY 10 - Deployment, CI, and this history document
+--------------------------------------------------
+Suggested commit: chore: add Docker, CI workflows, deployment guide and commit history
+
+Files:
+- .github/workflows/ci.yml - Continuous integration: install, typecheck, test, and build.
+- .github/workflows/deploy.yml - Image build and deployment automation.
+- backend/Dockerfile - API container image definition.
+- frontend/Dockerfile - Frontend build image definition.
+- frontend/nginx.conf - Static frontend serving configuration.
+- docker-compose.yml - Local MongoDB replica set, Redis, API, and frontend services.
+- docs/deployment-guide.md - Production deployment checklist using host-managed secrets.
+- docs/api-contracts.md - Cross-cutting API contracts and error conventions.
+- commithistory.txt - This 10-day commit plan and safety record.
+
+Verification:
+  npm run typecheck
+  npm run build
+  npm test
+  git status --short
+  Confirm no .env, PEM, key, node_modules, dist, or coverage file is staged.
+
+Suggested commands:
+  git add -- .github/workflows/ci.yml .github/workflows/deploy.yml backend/Dockerfile frontend/Dockerfile frontend/nginx.conf docker-compose.yml docs/deployment-guide.md docs/api-contracts.md commithistory.txt
+  git commit -m "chore: add Docker, CI workflows, deployment guide and commit history"

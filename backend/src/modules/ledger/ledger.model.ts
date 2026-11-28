@@ -1,9 +1,7 @@
 /**
- * PLACEHOLDER - OWNED BY PERSON 2. DO NOT COMMIT THIS FILE.
- * It only exists so Person 1's code compiles before Person 2's PR merges.
- * Person 2's real ledger.model.ts must export `getLedgerModels(connection)`
- * returning { Transaction, Entry } that match LedgerTransactionDoc / LedgerEntryDoc
- * and must define: unique index { tenantId: 1, eventId: 1 }.
+ * Ledger persistence: transaction row + double-entry schemas.
+ * Unique indexes: { tenantId, eventId } and { tenantId, transactionId }.
+ * Exports getLedgerModels(connection) -> { Transaction, Entry }.
  */
 import { Schema, type Connection, type Model } from 'mongoose';
 import type { LedgerEntryDoc, LedgerTransactionDoc } from './ledger.types';
